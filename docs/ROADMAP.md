@@ -25,9 +25,12 @@ Aplikacja ma uczyć, nie tylko liczyć.
 **Onboarding:** rejestracja konta → logowanie → pusty panel z zachętą do
 dodania pierwszej spółki.
 
-**Dodanie spółki (główny przepływ):** użytkownik wrzuca raport PDF →
-pipeline parsuje i liczy → użytkownik widzi wynik i może skorygować dane →
-spółka ląduje na jego liście.
+**Dodanie spółki (główny przepływ):** użytkownik wrzuca raport roczny
+w formacie ESEF (paczka `.xbri`) → pipeline rozpakowuje, parsuje i liczy →
+użytkownik widzi wynik → spółka ląduje na jego liście.
+
+**Dodanie spółki bez raportu ESEF:** dla spółek spoza GPW lub raportów
+sprzed obowiązku ESEF — ręczne wprowadzenie danych finansowych formularzem.
 
 **Przegląd:** panel z listą spółek → wejście w konkretną spółkę → pełna
 analiza fundamentalna.
@@ -92,19 +95,27 @@ ujemnym cash flow, marża spadająca r/r, dług rosnący szybciej niż zysk.
 - `GET /companies` — lista spółek użytkownika
 - `GET /companies/{id}` — szczegóły i analiza spółki
 - `POST /companies` — dodanie spółki (uruchamia pipeline)
-- `PUT /companies/{id}/financials` — ręczna korekta danych finansowych
+- `PUT /companies/{id}/financials` — ręczne wprowadzenie/edycja danych finansowych
 
 ### Pipeline-executor (rdzeń)
 `POST /companies` uruchamia pipeline jako sekwencję kroków:
 
-1. **Wejście** — parsowanie PDF (rdzeń) LUB dane z formularza (korekta / fallback)
+1. **Wejście** — dwa warianty, dające ten sam model danych:
+  - **ESEF (główny)** — rozpakowanie paczki `.xbri` (archiwum ZIP) →
+    odnalezienie głównego pliku raportu w `reports/` → parsowanie iXBRL →
+    odczyt wartości po nazwach tagów IFRS (np. `ifrs-full:Revenue`)
+  - **Formularz** — ręczne wprowadzenie danych dla spółek bez raportu ESEF
 2. **Agregacja** — surowe dane do jednego modelu `FinancialData`
 3. **Obliczenia** — wskaźniki i flagi ostrzegawcze
 4. **Wzbogacenie** — uzupełnienie danymi rynkowymi z API zewnętrznego (Yahoo)
 5. **Zapis** — spółka + analiza do bazy
 
 Każdy krok to osobny, testowalny komponent. Krok 1 ma dwa warianty
-(PDF / formularz) — reszta pipeline'u wspólna.
+(ESEF / formularz) — od kroku 2 pipeline jest wspólny.
+
+Parsowanie iXBRL jest deterministyczne: dane w raporcie ESEF są otagowane
+wg taksonomii IFRS, więc odczyt nie zależy od layoutu dokumentu i działa
+identycznie dla każdej spółki giełdowej w UE.
 
 ---
 
@@ -117,7 +128,7 @@ Trzy główne encje w relacjach:
   (relacja do Company; spółka ma wiele raportów → trendy r/r)
 
 Zasada: wskaźnik nigdy nie jest zapisany bez surowych danych, z których
-powstał — umożliwia weryfikację i ochronę przed błędem parsera.
+powstał — umożliwia weryfikację i wychwycenie błędu parsowania.
 
 ---
 
@@ -125,7 +136,8 @@ powstał — umożliwia weryfikację i ochronę przed błędem parsera.
 
 | Ryzyko | Wpływ | Mitygacja |
 |--------|-------|-----------|
-| Parser PDF zawodzi na nietypowym raporcie | Wysoki — rdzeń projektu | Ręczna korekta danych jako drugie wejście pipeline'u; testy na wielu realnych raportach wcześnie |
+| Trudności techniczne z parsowaniem ESEF (ZIP, namespace'y XML, taksonomia) | Niski — format jest ustrukturyzowany i deterministyczny | Wczesny prototyp parsera na realnej paczce `.xbri`; iXBRL nie zależy od layoutu |
+| Nietypowe/niekompletne otagowanie w raporcie konkretnej spółki | Niski | Brakujący tag = brak danej, jawnie obsłużony; formularz jako wejście zastępcze |
 | Yahoo API niestabilne / niedostępne | Średni | Etap 2 jako funkcja dodatkowa; etap 1 nie zależy od API |
 | Over-engineering pipeline'u | Średni | Każdy krok prosty; nie dokładać kroków bez potrzeby |
 
@@ -151,10 +163,12 @@ powstał — umożliwia weryfikację i ochronę przed błędem parsera.
 - [ ] ADR: Vue, JWT zamiast Keycloaka, komunikacja REST
 
 ### Faza 4 — Parser i analiza
-- [ ] Parsowanie PDF — krok 1 pipeline'u
+- [ ] Parser ESEF — rozpakowanie `.xbri`, odnalezienie pliku raportu
+- [ ] Parsowanie iXBRL — odczyt wartości po tagach IFRS (krok 1)
 - [ ] Obliczenia wskaźników + flagi (krok 3)
 - [ ] Wzbogacenie danymi rynkowymi (krok 4)
 - [ ] Panel analizy spółki: etap 1, etap 2, tooltipy
+- [ ] ADR: ESEF/iXBRL jako format wejścia (zamiast parsowania PDF)
 
 ### Faza 5 — Szlif
 - [ ] Obsługa błędów, walidacja wejścia
