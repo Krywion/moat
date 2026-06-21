@@ -1,0 +1,21 @@
+# sekrety / env
+.env
+
+# Java / Maven
+backend/target/
+*.class
+
+# IDE
+.idea/
+*.iml
+*.ipr
+*.iws
+.vscode/
+
+# Node (frontend, Faza 3)
+frontend/node_modules/
+frontend/dist/
+
+# OS
+.DS_Store
+Thumbs.db

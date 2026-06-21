@@ -1,0 +1,27 @@
+spring:
+  application:
+    name: moat-backend
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/moat}
+    username: ${SPRING_DATASOURCE_USERNAME:moat}
+    password: ${SPRING_DATASOURCE_PASSWORD:moat}
+  jpa:
+    hibernate:
+      # Liquibase jest źródłem prawdy o schemacie; Hibernate tylko waliduje
+      # zgodność encji z bazą i nie modyfikuje schematu.
+      ddl-auto: validate
+    open-in-view: false
+    properties:
+      hibernate.format_sql: true
+  liquibase:
+    change-log: classpath:db/changelog/db.changelog-master.yaml
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      probes:
+        enabled: true
