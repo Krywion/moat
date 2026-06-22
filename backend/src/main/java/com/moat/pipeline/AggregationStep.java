@@ -8,6 +8,9 @@ public class AggregationStep implements PipelineStep {
 
     @Override
     public void execute(PipelineContext context) {
+        if (context.getFinancialData() != null) {
+            return; // wariant ESEF: dane już zagregowane przez parser
+        }
         FinancialForm f = context.getInput();
         context.setFinancialData(new FinancialData(
                 f.fiscalYear(), f.currency(), f.revenue(), f.ebit(), f.depreciation(),

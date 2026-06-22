@@ -23,4 +23,10 @@ public class PipelineContext {
         this.company = company;
         this.input = input;
     }
+
+    public PipelineContext(Company company, FinancialData financialData) {
+        this.company = company;
+        this.input = null;
+        this.financialData = financialData;
+    }
 }

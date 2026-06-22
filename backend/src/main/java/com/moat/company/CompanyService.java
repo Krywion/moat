@@ -5,6 +5,7 @@ import com.moat.company.dto.CompanySummaryResponse;
 import com.moat.company.dto.CreateCompanyRequest;
 import com.moat.company.dto.FinancialForm;
 import com.moat.company.dto.FinancialReportResponse;
+import com.moat.esef.EsefParser;
 import com.moat.pipeline.PipelineContext;
 import com.moat.pipeline.PipelineExecutor;
 import com.moat.pipeline.WarningFlagEvaluator;
@@ -27,17 +28,34 @@ public class CompanyService {
     private final UserRepository userRepository;
     private final PipelineExecutor pipelineExecutor;
     private final WarningFlagEvaluator flagEvaluator;
+    private final EsefParser esefParser;
 
     public CompanyService(CompanyRepository companyRepository,
                           FinancialReportRepository reportRepository,
                           UserRepository userRepository,
                           PipelineExecutor pipelineExecutor,
-                          WarningFlagEvaluator flagEvaluator) {
+                          WarningFlagEvaluator flagEvaluator,
+                          EsefParser esefParser) {
         this.companyRepository = companyRepository;
         this.reportRepository = reportRepository;
         this.userRepository = userRepository;
         this.pipelineExecutor = pipelineExecutor;
         this.flagEvaluator = flagEvaluator;
+        this.esefParser = esefParser;
+    }
+
+    @Transactional
+    public CompanyDetailResponse createCompanyFromEsef(UUID ownerId, byte[] xbri, String ticker) {
+        com.moat.esef.ParsedEsef parsed = esefParser.parse(xbri);
+        Company company = new Company();
+        company.setOwner(userRepository.getReferenceById(ownerId));
+        company.setName(parsed.companyName());
+        company.setTicker(ticker);
+        company.setCreatedAt(OffsetDateTime.now());
+        company = companyRepository.save(company);
+
+        pipelineExecutor.run(new PipelineContext(company, parsed.data()));
+        return toDetailResponse(company);
     }
 
     @Transactional
