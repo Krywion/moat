@@ -3,6 +3,8 @@ FROM maven:3.9-eclipse-temurin-21 AS build
 WORKDIR /app
 COPY pom.xml .
 RUN mvn -q -B dependency:go-offline
+# openapi.yaml jest źródłem prawdy DTO — generator potrzebuje go w buildzie
+COPY openapi.yaml .
 COPY src ./src
 RUN mvn -q -B clean package -DskipTests
 
