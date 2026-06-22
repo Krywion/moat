@@ -1,0 +1,184 @@
+{
+  "info": {
+    "_postman_id": "b7e3a1c2-0001-4a10-9f00-moat00000001",
+    "name": "Moat API",
+    "description": "Kolekcja do ręcznego klikania API analizatora spółek (Faza 3: auth + spółki + pipeline formularzowy).\n\nUżycie:\n1. Uruchom backend (np. `docker compose up` lub `mvn spring-boot:run` w `backend/`).\n2. Wyślij `Auth / Register` (raz na dany email; ponowne → 409).\n3. Wyślij `Auth / Login` — JWT przychodzi jako HttpOnly cookie `auth_token`; Postman zapamiętuje je w cookie jar i odsyła automatycznie w kolejnych żądaniach.\n4. `Companies / Create` zapisuje `id` nowej spółki do zmiennej kolekcji `companyId` — endpointy `Get by id` i `Update financials` używają jej automatycznie.\n\nZmienne kolekcji: `baseUrl`, `email`, `password`, `companyId`.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:8080", "type": "string" },
+    { "key": "email", "value": "alice@example.com", "type": "string" },
+    { "key": "password", "value": "password123", "type": "string" },
+    { "key": "companyId", "value": "", "type": "string" }
+  ],
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Register",
+          "request": {
+            "method": "POST",
+            "header": [ { "key": "Content-Type", "value": "application/json" } ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{email}}\",\n  \"password\": \"{{password}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/register",
+              "host": [ "{{baseUrl}}" ],
+              "path": [ "auth", "register" ]
+            },
+            "description": "Rejestracja konta (rola USER). 201 + dane konta. Ponowny ten sam email → 409."
+          },
+          "response": []
+        },
+        {
+          "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 OK', function () { pm.response.to.have.status(200); });",
+                  "pm.test('cookie auth_token ustawione', function () {",
+                  "  pm.expect(pm.cookies.has('auth_token')).to.be.true;",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [ { "key": "Content-Type", "value": "application/json" } ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{email}}\",\n  \"password\": \"{{password}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [ "{{baseUrl}}" ],
+              "path": [ "auth", "login" ]
+            },
+            "description": "Logowanie. Zwraca JWT jako HttpOnly cookie `auth_token` (Postman zapamiętuje je automatycznie)."
+          },
+          "response": []
+        },
+        {
+          "name": "Me",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/auth/me",
+              "host": [ "{{baseUrl}}" ],
+              "path": [ "auth", "me" ]
+            },
+            "description": "Bieżący użytkownik z tokenu w ciasteczku. Bez ważnego ciasteczka → 401."
+          },
+          "response": []
+        },
+        {
+          "name": "Logout",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/auth/logout",
+              "host": [ "{{baseUrl}}" ],
+              "path": [ "auth", "logout" ]
+            },
+            "description": "Kasuje ciasteczko `auth_token`. 204."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Companies",
+      "item": [
+        {
+          "name": "Create (company + first report)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('201 Created', function () { pm.response.to.have.status(201); });",
+                  "var json = pm.response.json();",
+                  "if (json && json.id) {",
+                  "  pm.collectionVariables.set('companyId', json.id);",
+                  "  console.log('companyId =', json.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [ { "key": "Content-Type", "value": "application/json" } ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Acme S.A.\",\n  \"ticker\": \"ACM\",\n  \"financials\": {\n    \"fiscalYear\": 2023,\n    \"currency\": \"PLN\",\n    \"revenue\": 1000,\n    \"ebit\": 200,\n    \"depreciation\": 50,\n    \"netProfit\": 100,\n    \"totalDebt\": 300,\n    \"netDebt\": 150,\n    \"equity\": 500,\n    \"operatingCashFlow\": 120\n  }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/companies",
+              "host": [ "{{baseUrl}}" ],
+              "path": [ "companies" ]
+            },
+            "description": "Tworzy spółkę i uruchamia pipeline na formularzu za rok → pierwszy raport z policzonymi wskaźnikami. Zapisuje `id` do zmiennej `companyId`."
+          },
+          "response": []
+        },
+        {
+          "name": "List (mine)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/companies",
+              "host": [ "{{baseUrl}}" ],
+              "path": [ "companies" ]
+            },
+            "description": "Lista spółek zalogowanego użytkownika ze wskaźnikiem skrótowym (ostatni rok + marża netto)."
+          },
+          "response": []
+        },
+        {
+          "name": "Get by id (full analysis)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/companies/{{companyId}}",
+              "host": [ "{{baseUrl}}" ],
+              "path": [ "companies", "{{companyId}}" ]
+            },
+            "description": "Szczegóły spółki + wszystkie raporty (rosnąco po roku) z danymi surowymi, liczonymi i flagami. Cudza/nieistniejąca → 404."
+          },
+          "response": []
+        },
+        {
+          "name": "Update financials (add/edit a year)",
+          "request": {
+            "method": "PUT",
+            "header": [ { "key": "Content-Type", "value": "application/json" } ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fiscalYear\": 2024,\n  \"currency\": \"PLN\",\n  \"revenue\": 1200,\n  \"ebit\": 240,\n  \"depreciation\": 60,\n  \"netProfit\": 150,\n  \"totalDebt\": 330,\n  \"netDebt\": 160,\n  \"equity\": 600,\n  \"operatingCashFlow\": 140\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/companies/{{companyId}}/financials",
+              "host": [ "{{baseUrl}}" ],
+              "path": [ "companies", "{{companyId}}", "financials" ]
+            },
+            "description": "Dodaje lub aktualizuje raport za rok (upsert po `fiscalYear`). Drugi rok policzy dynamikę r/r względem pierwszego. Cudza spółka → 404."
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}
