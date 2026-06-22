@@ -1,5 +1,7 @@
 package com.moat.pipeline;
 
+import com.moat.market.MarketData;
+import com.moat.market.MarketDataService;
 import com.moat.report.FinancialReport;
 import com.moat.report.FinancialReportRepository;
 import org.springframework.stereotype.Component;
@@ -48,6 +50,11 @@ public class PersistenceStep implements PipelineStep {
         report.setDebtToEquity(i.debtToEquity());
         report.setRevenueGrowthYoy(i.revenueGrowthYoy());
         report.setProfitGrowthYoy(i.profitGrowthYoy());
+
+        MarketData market = context.getMarketData();
+        if (market != null) {
+            MarketDataService.applyTo(report, market);
+        }
 
         context.setReport(reportRepository.save(report));
     }

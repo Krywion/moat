@@ -28,6 +28,12 @@ public record FinancialReportResponse(
         BigDecimal debtToEquity,
         BigDecimal revenueGrowthYoy,
         BigDecimal profitGrowthYoy,
+        BigDecimal sharePrice,
+        BigDecimal marketCap,
+        BigDecimal pe,
+        BigDecimal evEbitda,
+        BigDecimal pbv,
+        BigDecimal dividendYield,
         List<WarningFlag> flags) {
 
     public static FinancialReportResponse from(FinancialReport report, FinancialReport prior,
@@ -44,6 +50,8 @@ public record FinancialReportResponse(
                 report.getNetDebt(), report.getEquity(), report.getOperatingCashFlow(),
                 report.getEbitda(), report.getOperatingMargin(), report.getEbitdaMargin(),
                 report.getNetMargin(), report.getRoe(), report.getDebtToEquity(),
-                report.getRevenueGrowthYoy(), report.getProfitGrowthYoy(), flags);
+                report.getRevenueGrowthYoy(), report.getProfitGrowthYoy(),
+                report.getSharePrice(), report.getMarketCap(), report.getPe(),
+                report.getEvEbitda(), report.getPbv(), report.getDividendYield(), flags);
     }
 }

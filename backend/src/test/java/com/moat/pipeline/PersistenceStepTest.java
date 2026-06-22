@@ -2,6 +2,7 @@ package com.moat.pipeline;
 
 import com.moat.company.Company;
 import com.moat.company.dto.FinancialForm;
+import com.moat.market.MarketData;
 import com.moat.report.FinancialReport;
 import com.moat.report.FinancialReportRepository;
 import org.junit.jupiter.api.Test;
@@ -45,5 +46,30 @@ class PersistenceStepTest {
         assertThat(saved.getRevenue()).isEqualByComparingTo("1000");
         assertThat(saved.getNetMargin()).isEqualByComparingTo("0.1");
         assertThat(saved.getCreatedAt()).isNotNull();
+    }
+
+    @Test
+    void persistsMarketDataWhenPresent() {
+        Company company = new Company();
+        company.setId(UUID.randomUUID());
+        when(reportRepository.findByCompanyIdAndFiscalYear(any(), anyInt())).thenReturn(Optional.empty());
+        when(reportRepository.save(any(FinancialReport.class))).thenAnswer(i -> i.getArgument(0));
+
+        PipelineContext ctx = new PipelineContext(company, new FinancialData(2024, "PLN",
+                BigDecimal.valueOf(1000), null, null, BigDecimal.valueOf(100), null, null,
+                BigDecimal.valueOf(500), null));
+        ctx.setIndicators(new ComputedIndicators(null, null, null, null, null, null, null, null));
+        ctx.setMarketData(new MarketData(BigDecimal.valueOf(12.5), BigDecimal.valueOf(2000),
+                BigDecimal.valueOf(20), BigDecimal.valueOf(9.2), BigDecimal.valueOf(4),
+                BigDecimal.valueOf(0.03)));
+
+        step.execute(ctx);
+
+        FinancialReport saved = ctx.getReport();
+        assertThat(saved.getSharePrice()).isEqualByComparingTo("12.5");
+        assertThat(saved.getMarketCap()).isEqualByComparingTo("2000");
+        assertThat(saved.getPe()).isEqualByComparingTo("20");
+        assertThat(saved.getPbv()).isEqualByComparingTo("4");
+        assertThat(saved.getDividendYield()).isEqualByComparingTo("0.03");
     }
 }

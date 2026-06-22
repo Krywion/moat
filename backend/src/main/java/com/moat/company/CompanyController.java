@@ -6,6 +6,7 @@ import com.moat.company.dto.CreateCompanyRequest;
 import com.moat.company.dto.FinancialForm;
 import com.moat.company.dto.FinancialReportResponse;
 import com.moat.esef.EsefParseException;
+import com.moat.market.MarketDataService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -30,9 +31,11 @@ import java.util.UUID;
 public class CompanyController {
 
     private final CompanyService companyService;
+    private final MarketDataService marketDataService;
 
-    public CompanyController(CompanyService companyService) {
+    public CompanyController(CompanyService companyService, MarketDataService marketDataService) {
         this.companyService = companyService;
+        this.marketDataService = marketDataService;
     }
 
     @PostMapping
@@ -75,6 +78,13 @@ public class CompanyController {
             throw new EsefParseException("Cannot read uploaded file", e);
         }
         return companyService.createCompanyFromEsef(userId(jwt), bytes, ticker);
+    }
+
+    @PostMapping("/{id}/refresh-market")
+    public CompanyDetailResponse refreshMarket(@AuthenticationPrincipal Jwt jwt, @PathVariable UUID id) {
+        UUID ownerId = userId(jwt);
+        marketDataService.refreshLatest(ownerId, id);
+        return companyService.getCompany(ownerId, id);
     }
 
     private static UUID userId(Jwt jwt) {

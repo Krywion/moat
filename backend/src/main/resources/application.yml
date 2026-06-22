@@ -38,3 +38,8 @@ app:
     name: auth_token
     secure: ${APP_COOKIE_SECURE:false}
     same-site: Strict
+  market:
+    base-url: ${APP_MARKET_BASE_URL:https://query1.finance.yahoo.com}
+    default-suffix: ${APP_MARKET_SUFFIX:.WA}
+    timeout-ms: ${APP_MARKET_TIMEOUT_MS:3000}
+    enabled: ${APP_MARKET_ENABLED:true}

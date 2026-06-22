@@ -2,6 +2,7 @@ package com.moat.pipeline;
 
 import com.moat.company.Company;
 import com.moat.company.dto.FinancialForm;
+import com.moat.market.MarketData;
 import com.moat.report.FinancialReport;
 import lombok.Getter;
 import lombok.Setter;
@@ -17,6 +18,7 @@ public class PipelineContext {
     @Setter private FinancialData financialData;
     @Setter private ComputedIndicators indicators;
     @Setter private List<WarningFlag> flags;
+    @Setter private MarketData marketData;
     @Setter private FinancialReport report;
 
     public PipelineContext(Company company, FinancialForm input) {
