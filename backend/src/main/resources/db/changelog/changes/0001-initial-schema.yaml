@@ -1,0 +1,145 @@
+databaseChangeLog:
+  - changeSet:
+      id: 0001-create-users
+      author: moat
+      changes:
+        - createTable:
+            tableName: users
+            columns:
+              - column:
+                  name: id
+                  type: UUID
+                  constraints:
+                    primaryKey: true
+                    primaryKeyName: pk_users
+                    nullable: false
+              - column:
+                  name: email
+                  type: VARCHAR(320)
+                  constraints:
+                    nullable: false
+                    unique: true
+                    uniqueConstraintName: uq_users_email
+              - column:
+                  name: password_hash
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: role
+                  type: VARCHAR(16)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: created_at
+                  type: TIMESTAMP WITH TIME ZONE
+                  defaultValueComputed: now()
+                  constraints:
+                    nullable: false
+
+  - changeSet:
+      id: 0001-create-companies
+      author: moat
+      changes:
+        - createTable:
+            tableName: companies
+            columns:
+              - column:
+                  name: id
+                  type: UUID
+                  constraints:
+                    primaryKey: true
+                    primaryKeyName: pk_companies
+                    nullable: false
+              - column:
+                  name: user_id
+                  type: UUID
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_companies_user
+                    references: users(id)
+              - column:
+                  name: name
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: ticker
+                  type: VARCHAR(32)
+              - column:
+                  name: created_at
+                  type: TIMESTAMP WITH TIME ZONE
+                  defaultValueComputed: now()
+                  constraints:
+                    nullable: false
+        - addUniqueConstraint:
+            tableName: companies
+            columnNames: user_id, ticker
+            constraintName: uq_company_user_ticker
+
+  - changeSet:
+      id: 0001-create-financial-reports
+      author: moat
+      changes:
+        - createTable:
+            tableName: financial_reports
+            columns:
+              - column:
+                  name: id
+                  type: UUID
+                  constraints:
+                    primaryKey: true
+                    primaryKeyName: pk_financial_reports
+                    nullable: false
+              - column:
+                  name: company_id
+                  type: UUID
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_reports_company
+                    references: companies(id)
+              - column:
+                  name: fiscal_year
+                  type: INT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: currency
+                  type: VARCHAR(3)
+                  constraints:
+                    nullable: false
+              # --- surowe dane ze sprawozdania ---
+              - column: {name: revenue, type: "NUMERIC(19, 4)"}
+              - column: {name: ebit, type: "NUMERIC(19, 4)"}
+              - column: {name: depreciation, type: "NUMERIC(19, 4)"}
+              - column: {name: net_profit, type: "NUMERIC(19, 4)"}
+              - column: {name: total_debt, type: "NUMERIC(19, 4)"}
+              - column: {name: net_debt, type: "NUMERIC(19, 4)"}
+              - column: {name: equity, type: "NUMERIC(19, 4)"}
+              - column: {name: operating_cash_flow, type: "NUMERIC(19, 4)"}
+              # --- wskaźniki liczone ---
+              - column: {name: ebitda, type: "NUMERIC(19, 4)"}
+              - column: {name: operating_margin, type: "NUMERIC(19, 4)"}
+              - column: {name: ebitda_margin, type: "NUMERIC(19, 4)"}
+              - column: {name: net_margin, type: "NUMERIC(19, 4)"}
+              - column: {name: roe, type: "NUMERIC(19, 4)"}
+              - column: {name: debt_to_equity, type: "NUMERIC(19, 4)"}
+              - column: {name: revenue_growth_yoy, type: "NUMERIC(19, 4)"}
+              - column: {name: profit_growth_yoy, type: "NUMERIC(19, 4)"}
+              # --- dane rynkowe (Etap 2) ---
+              - column: {name: share_price, type: "NUMERIC(19, 4)"}
+              - column: {name: market_cap, type: "NUMERIC(19, 4)"}
+              - column: {name: pe, type: "NUMERIC(19, 4)"}
+              - column: {name: ev_ebitda, type: "NUMERIC(19, 4)"}
+              - column: {name: pbv, type: "NUMERIC(19, 4)"}
+              - column: {name: dividend_yield, type: "NUMERIC(19, 4)"}
+              - column:
+                  name: created_at
+                  type: TIMESTAMP WITH TIME ZONE
+                  defaultValueComputed: now()
+                  constraints:
+                    nullable: false
+        - addUniqueConstraint:
+            tableName: financial_reports
+            columnNames: company_id, fiscal_year
+            constraintName: uq_report_company_year
