@@ -177,6 +177,43 @@
             "description": "Dodaje lub aktualizuje raport za rok (upsert po `fiscalYear`). Drugi rok policzy dynamikę r/r względem pierwszego. Cudza spółka → 404."
           },
           "response": []
+        },
+        {
+          "name": "Create from ESEF (.xbri upload)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('201 Created', function () { pm.response.to.have.status(201); });",
+                  "var json = pm.response.json();",
+                  "if (json && json.id) {",
+                  "  pm.collectionVariables.set('companyId', json.id);",
+                  "  console.log('companyId =', json.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "file", "type": "file", "src": "", "description": "Paczka ESEF .xbri (np. data/raw/zal04_...xbri)" },
+                { "key": "ticker", "value": "RBW", "type": "text", "description": "opcjonalny ticker giełdowy" }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/companies/esef",
+              "host": [ "{{baseUrl}}" ],
+              "path": [ "companies", "esef" ]
+            },
+            "description": "Wgrywa paczkę ESEF (.xbri) jako multipart form-data. Parser rozpakowuje ZIP, czyta iXBRL po tagach IFRS i tworzy spółkę (nazwa z raportu) + raport z policzonymi wskaźnikami. Zła/niepasująca paczka → 422.\n\nW zakładce Body → form-data wskaż plik .xbri w wierszu `file` (typ File). Zapisuje `id` do zmiennej `companyId`."
+          },
+          "response": []
         }
       ]
     }
