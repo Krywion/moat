@@ -1,5 +1,6 @@
 package com.moat.auth;
 
+import com.moat.api.model.ApiError;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -30,7 +31,11 @@ public class AuthExceptionHandler {
     }
 
     private ResponseEntity<ApiError> build(HttpStatus status, String message) {
-        ApiError body = ApiError.of(status.value(), status.getReasonPhrase(), message);
+        ApiError body = new ApiError()
+                .timestamp(java.time.OffsetDateTime.now().toString())
+                .status(status.value())
+                .error(status.getReasonPhrase())
+                .message(message);
         return ResponseEntity.status(status).body(body);
     }
 }

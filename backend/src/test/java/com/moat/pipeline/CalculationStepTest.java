@@ -1,7 +1,7 @@
 package com.moat.pipeline;
 
 import com.moat.company.Company;
-import com.moat.company.dto.FinancialForm;
+import com.moat.api.model.FinancialForm;
 import com.moat.report.FinancialReportRepository;
 import org.junit.jupiter.api.Test;
 
@@ -22,9 +22,11 @@ class CalculationStepTest {
             reportRepository, new IndicatorCalculator(), new WarningFlagEvaluator());
 
     private FinancialForm form(int year, long revenue, long ebit, long netProfit) {
-        return new FinancialForm(year, "PLN", BigDecimal.valueOf(revenue), BigDecimal.valueOf(ebit),
-                BigDecimal.valueOf(10), BigDecimal.valueOf(netProfit), BigDecimal.valueOf(100),
-                null, BigDecimal.valueOf(500), BigDecimal.valueOf(50));
+        return new FinancialForm().fiscalYear(year).currency("PLN")
+                .revenue(BigDecimal.valueOf(revenue)).ebit(BigDecimal.valueOf(ebit))
+                .depreciation(BigDecimal.valueOf(10)).netProfit(BigDecimal.valueOf(netProfit))
+                .totalDebt(BigDecimal.valueOf(100)).equity(BigDecimal.valueOf(500))
+                .operatingCashFlow(BigDecimal.valueOf(50));
     }
 
     @Test

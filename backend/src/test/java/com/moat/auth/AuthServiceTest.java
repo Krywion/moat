@@ -1,7 +1,7 @@
 package com.moat.auth;
 
-import com.moat.auth.dto.LoginRequest;
-import com.moat.auth.dto.RegisterRequest;
+import com.moat.api.model.LoginRequest;
+import com.moat.api.model.RegisterRequest;
 import com.moat.user.Role;
 import com.moat.user.User;
 import com.moat.user.UserRepository;
@@ -29,7 +29,7 @@ class AuthServiceTest {
         when(userRepository.existsByEmail("alice@example.com")).thenReturn(false);
         when(userRepository.save(any(User.class))).thenAnswer(inv -> inv.getArgument(0));
 
-        User saved = authService.register(new RegisterRequest("alice@example.com", "password123"));
+        User saved = authService.register(new RegisterRequest().email("alice@example.com").password("password123"));
 
         assertThat(saved.getEmail()).isEqualTo("alice@example.com");
         assertThat(saved.getRole()).isEqualTo(Role.USER);
@@ -43,7 +43,7 @@ class AuthServiceTest {
         when(userRepository.existsByEmail("taken@example.com")).thenReturn(true);
 
         assertThatThrownBy(() ->
-                authService.register(new RegisterRequest("taken@example.com", "password123")))
+                authService.register(new RegisterRequest().email("taken@example.com").password("password123")))
                 .isInstanceOf(DuplicateEmailException.class);
     }
 
@@ -55,7 +55,7 @@ class AuthServiceTest {
         user.setPasswordHash(passwordEncoder.encode("password123"));
         when(userRepository.findByEmail("bob@example.com")).thenReturn(Optional.of(user));
 
-        User result = authService.authenticate(new LoginRequest("bob@example.com", "password123"));
+        User result = authService.authenticate(new LoginRequest().email("bob@example.com").password("password123"));
 
         assertThat(result.getEmail()).isEqualTo("bob@example.com");
     }
@@ -69,7 +69,7 @@ class AuthServiceTest {
         when(userRepository.findByEmail("bob@example.com")).thenReturn(Optional.of(user));
 
         assertThatThrownBy(() ->
-                authService.authenticate(new LoginRequest("bob@example.com", "wrong-password")))
+                authService.authenticate(new LoginRequest().email("bob@example.com").password("wrong-password")))
                 .isInstanceOf(BadCredentialsException.class);
     }
 
@@ -78,7 +78,7 @@ class AuthServiceTest {
         when(userRepository.findByEmail("missing@example.com")).thenReturn(Optional.empty());
 
         assertThatThrownBy(() ->
-                authService.authenticate(new LoginRequest("missing@example.com", "password123")))
+                authService.authenticate(new LoginRequest().email("missing@example.com").password("password123")))
                 .isInstanceOf(BadCredentialsException.class);
     }
 }

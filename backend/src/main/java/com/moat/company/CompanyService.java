@@ -1,14 +1,13 @@
 package com.moat.company;
 
-import com.moat.company.dto.CompanyDetailResponse;
-import com.moat.company.dto.CompanySummaryResponse;
-import com.moat.company.dto.CreateCompanyRequest;
-import com.moat.company.dto.FinancialForm;
-import com.moat.company.dto.FinancialReportResponse;
+import com.moat.api.model.CompanyDetailResponse;
+import com.moat.api.model.CompanySummaryResponse;
+import com.moat.api.model.CreateCompanyRequest;
+import com.moat.api.model.FinancialForm;
+import com.moat.api.model.FinancialReportResponse;
 import com.moat.esef.EsefParser;
 import com.moat.pipeline.PipelineContext;
 import com.moat.pipeline.PipelineExecutor;
-import com.moat.pipeline.WarningFlagEvaluator;
 import com.moat.report.FinancialReport;
 import com.moat.report.FinancialReportRepository;
 import com.moat.user.UserRepository;
@@ -27,21 +26,58 @@ public class CompanyService {
     private final FinancialReportRepository reportRepository;
     private final UserRepository userRepository;
     private final PipelineExecutor pipelineExecutor;
-    private final WarningFlagEvaluator flagEvaluator;
     private final EsefParser esefParser;
+    private final CompanyMapper companyMapper;
 
     public CompanyService(CompanyRepository companyRepository,
                           FinancialReportRepository reportRepository,
                           UserRepository userRepository,
                           PipelineExecutor pipelineExecutor,
-                          WarningFlagEvaluator flagEvaluator,
-                          EsefParser esefParser) {
+                          EsefParser esefParser,
+                          CompanyMapper companyMapper) {
         this.companyRepository = companyRepository;
         this.reportRepository = reportRepository;
         this.userRepository = userRepository;
         this.pipelineExecutor = pipelineExecutor;
-        this.flagEvaluator = flagEvaluator;
         this.esefParser = esefParser;
+        this.companyMapper = companyMapper;
+    }
+
+    @Transactional
+    public CompanyDetailResponse createCompany(UUID ownerId, CreateCompanyRequest req) {
+        Company company = new Company();
+        company.setOwner(userRepository.getReferenceById(ownerId));
+        company.setName(req.getName());
+        company.setTicker(req.getTicker());
+        company.setCreatedAt(OffsetDateTime.now());
+        company = companyRepository.save(company);
+        pipelineExecutor.run(new PipelineContext(company, req.getFinancials()));
+        return toDetail(company);
+    }
+
+    @Transactional
+    public FinancialReportResponse updateFinancials(UUID ownerId, UUID companyId, FinancialForm form) {
+        Company company = requireOwnedCompany(ownerId, companyId);
+        FinancialReport report = pipelineExecutor.run(new PipelineContext(company, form));
+        FinancialReport prior = reportRepository
+                .findByCompanyIdAndFiscalYear(companyId, report.getFiscalYear() - 1).orElse(null);
+        return companyMapper.toReport(report, prior);
+    }
+
+    @Transactional(readOnly = true)
+    public List<CompanySummaryResponse> listCompanies(UUID ownerId) {
+        List<CompanySummaryResponse> result = new ArrayList<>();
+        for (Company company : companyRepository.findByOwnerId(ownerId)) {
+            FinancialReport latest = reportRepository
+                    .findFirstByCompanyIdOrderByFiscalYearDesc(company.getId()).orElse(null);
+            result.add(companyMapper.toSummary(company, latest));
+        }
+        return result;
+    }
+
+    @Transactional(readOnly = true)
+    public CompanyDetailResponse getCompany(UUID ownerId, UUID companyId) {
+        return toDetail(requireOwnedCompany(ownerId, companyId));
     }
 
     @Transactional
@@ -53,52 +89,8 @@ public class CompanyService {
         company.setTicker(ticker);
         company.setCreatedAt(OffsetDateTime.now());
         company = companyRepository.save(company);
-
         pipelineExecutor.run(new PipelineContext(company, parsed.data()));
-        return toDetailResponse(company);
-    }
-
-    @Transactional
-    public CompanyDetailResponse createCompany(UUID ownerId, CreateCompanyRequest req) {
-        Company company = new Company();
-        company.setOwner(userRepository.getReferenceById(ownerId));
-        company.setName(req.name());
-        company.setTicker(req.ticker());
-        company.setCreatedAt(OffsetDateTime.now());
-        company = companyRepository.save(company);
-
-        pipelineExecutor.run(new PipelineContext(company, req.financials()));
-        return toDetailResponse(company);
-    }
-
-    @Transactional
-    public FinancialReportResponse updateFinancials(UUID ownerId, UUID companyId, FinancialForm form) {
-        Company company = requireOwnedCompany(ownerId, companyId);
-        FinancialReport report = pipelineExecutor.run(new PipelineContext(company, form));
-        FinancialReport prior = reportRepository
-                .findByCompanyIdAndFiscalYear(companyId, report.getFiscalYear() - 1)
-                .orElse(null);
-        return FinancialReportResponse.from(report, prior, flagEvaluator);
-    }
-
-    @Transactional(readOnly = true)
-    public List<CompanySummaryResponse> listCompanies(UUID ownerId) {
-        List<CompanySummaryResponse> result = new ArrayList<>();
-        for (Company company : companyRepository.findByOwnerId(ownerId)) {
-            FinancialReport latest = reportRepository
-                    .findFirstByCompanyIdOrderByFiscalYearDesc(company.getId())
-                    .orElse(null);
-            result.add(new CompanySummaryResponse(
-                    company.getId(), company.getName(), company.getTicker(),
-                    latest == null ? null : latest.getFiscalYear(),
-                    latest == null ? null : latest.getNetMargin()));
-        }
-        return result;
-    }
-
-    @Transactional(readOnly = true)
-    public CompanyDetailResponse getCompany(UUID ownerId, UUID companyId) {
-        return toDetailResponse(requireOwnedCompany(ownerId, companyId));
+        return toDetail(company);
     }
 
     private Company requireOwnedCompany(UUID ownerId, UUID companyId) {
@@ -106,18 +98,8 @@ public class CompanyService {
                 .orElseThrow(() -> new CompanyNotFoundException(companyId));
     }
 
-    private CompanyDetailResponse toDetailResponse(Company company) {
-        List<FinancialReport> reports =
-                reportRepository.findByCompanyIdOrderByFiscalYearAsc(company.getId());
-        List<FinancialReportResponse> responses = new ArrayList<>();
-        FinancialReport prior = null;
-        for (FinancialReport report : reports) {
-            FinancialReport priorForThis =
-                    (prior != null && prior.getFiscalYear() == report.getFiscalYear() - 1) ? prior : null;
-            responses.add(FinancialReportResponse.from(report, priorForThis, flagEvaluator));
-            prior = report;
-        }
-        return new CompanyDetailResponse(
-                company.getId(), company.getName(), company.getTicker(), responses);
+    private CompanyDetailResponse toDetail(Company company) {
+        return companyMapper.toDetail(company,
+                reportRepository.findByCompanyIdOrderByFiscalYearAsc(company.getId()));
     }
 }

@@ -1,6 +1,6 @@
 package com.moat.pipeline;
 
-import com.moat.company.dto.FinancialForm;
+import com.moat.api.model.FinancialForm;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -13,7 +13,7 @@ public class AggregationStep implements PipelineStep {
         }
         FinancialForm f = context.getInput();
         context.setFinancialData(new FinancialData(
-                f.fiscalYear(), f.currency(), f.revenue(), f.ebit(), f.depreciation(),
-                f.netProfit(), f.totalDebt(), f.netDebt(), f.equity(), f.operatingCashFlow()));
+                f.getFiscalYear(), f.getCurrency(), f.getRevenue(), f.getEbit(), f.getDepreciation(),
+                f.getNetProfit(), f.getTotalDebt(), f.getNetDebt(), f.getEquity(), f.getOperatingCashFlow()));
     }
 }

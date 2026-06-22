@@ -1,8 +1,8 @@
 package com.moat.company;
 
-import com.moat.company.dto.CompanyDetailResponse;
-import com.moat.company.dto.CreateCompanyRequest;
-import com.moat.company.dto.FinancialForm;
+import com.moat.api.model.CompanyDetailResponse;
+import com.moat.api.model.CreateCompanyRequest;
+import com.moat.api.model.FinancialForm;
 import com.moat.pipeline.PipelineExecutor;
 import com.moat.pipeline.WarningFlagEvaluator;
 import com.moat.report.FinancialReport;
@@ -28,16 +28,17 @@ class CompanyServiceTest {
     private final FinancialReportRepository reportRepository = mock(FinancialReportRepository.class);
     private final UserRepository userRepository = mock(UserRepository.class);
     private final PipelineExecutor pipelineExecutor = mock(PipelineExecutor.class);
-    private final WarningFlagEvaluator flagEvaluator = new WarningFlagEvaluator();
     private final com.moat.esef.EsefParser esefParser = mock(com.moat.esef.EsefParser.class);
     private final CompanyService service = new CompanyService(
             companyRepository, reportRepository, userRepository, pipelineExecutor,
-            flagEvaluator, esefParser);
+            esefParser, new CompanyMapper(new WarningFlagEvaluator()));
 
     private FinancialForm form() {
-        return new FinancialForm(2024, "PLN", BigDecimal.valueOf(1000), BigDecimal.valueOf(200),
-                BigDecimal.valueOf(10), BigDecimal.valueOf(100), BigDecimal.valueOf(100), null,
-                BigDecimal.valueOf(500), BigDecimal.valueOf(50));
+        return new FinancialForm().fiscalYear(2024).currency("PLN")
+                .revenue(BigDecimal.valueOf(1000)).ebit(BigDecimal.valueOf(200))
+                .depreciation(BigDecimal.valueOf(10)).netProfit(BigDecimal.valueOf(100))
+                .totalDebt(BigDecimal.valueOf(100)).equity(BigDecimal.valueOf(500))
+                .operatingCashFlow(BigDecimal.valueOf(50));
     }
 
     @Test
@@ -62,8 +63,8 @@ class CompanyServiceTest {
         when(reportRepository.findByCompanyIdOrderByFiscalYearAsc(any())).thenReturn(List.of());
 
         CompanyDetailResponse result = service.createCompany(ownerId,
-                new CreateCompanyRequest("Acme", "ACM", form()));
+                new CreateCompanyRequest().name("Acme").ticker("ACM").financials(form()));
 
-        assertThat(result.name()).isEqualTo("Acme");
+        assertThat(result.getName()).isEqualTo("Acme");
     }
 }

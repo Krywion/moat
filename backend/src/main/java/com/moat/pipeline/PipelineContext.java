@@ -1,7 +1,7 @@
 package com.moat.pipeline;
 
 import com.moat.company.Company;
-import com.moat.company.dto.FinancialForm;
+import com.moat.api.model.FinancialForm;
 import com.moat.market.MarketData;
 import com.moat.report.FinancialReport;
 import lombok.Getter;

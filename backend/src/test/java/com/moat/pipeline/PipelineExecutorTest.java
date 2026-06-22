@@ -1,7 +1,7 @@
 package com.moat.pipeline;
 
 import com.moat.company.Company;
-import com.moat.company.dto.FinancialForm;
+import com.moat.api.model.FinancialForm;
 import com.moat.report.FinancialReport;
 import org.junit.jupiter.api.Test;
 import org.mockito.InOrder;
@@ -26,8 +26,8 @@ class PipelineExecutorTest {
     void runsStepsInOrderAndReturnsReport() {
         Company company = new Company();
         FinancialReport expected = new FinancialReport();
-        FinancialForm form = new FinancialForm(2024, "PLN", BigDecimal.valueOf(1000), null, null,
-                null, null, null, null, null);
+        FinancialForm form = new FinancialForm().fiscalYear(2024).currency("PLN")
+                .revenue(BigDecimal.valueOf(1000));
         PipelineContext ctx = new PipelineContext(company, form);
         doAnswer(inv -> {
             ((PipelineContext) inv.getArgument(0)).setReport(expected);

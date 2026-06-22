@@ -1,7 +1,7 @@
 package com.moat.pipeline;
 
 import com.moat.company.Company;
-import com.moat.company.dto.FinancialForm;
+import com.moat.api.model.FinancialForm;
 import com.moat.market.MarketData;
 import com.moat.report.FinancialReport;
 import com.moat.report.FinancialReportRepository;
@@ -30,8 +30,9 @@ class PersistenceStepTest {
         when(reportRepository.findByCompanyIdAndFiscalYear(any(), anyInt())).thenReturn(Optional.empty());
         when(reportRepository.save(any(FinancialReport.class))).thenAnswer(i -> i.getArgument(0));
 
-        FinancialForm form = new FinancialForm(2024, "PLN", BigDecimal.valueOf(1000), null, null,
-                BigDecimal.valueOf(100), null, null, BigDecimal.valueOf(500), null);
+        FinancialForm form = new FinancialForm().fiscalYear(2024).currency("PLN")
+                .revenue(BigDecimal.valueOf(1000)).netProfit(BigDecimal.valueOf(100))
+                .equity(BigDecimal.valueOf(500));
         PipelineContext ctx = new PipelineContext(company, form);
         ctx.setFinancialData(new FinancialData(2024, "PLN", BigDecimal.valueOf(1000), null, null,
                 BigDecimal.valueOf(100), null, null, BigDecimal.valueOf(500), null));

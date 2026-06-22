@@ -1,6 +1,6 @@
 package com.moat.company;
 
-import com.moat.auth.ApiError;
+import com.moat.api.model.ApiError;
 import com.moat.esef.EsefParseException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -12,15 +12,20 @@ public class CompanyExceptionHandler {
 
     @ExceptionHandler(CompanyNotFoundException.class)
     public ResponseEntity<ApiError> handleNotFound(CompanyNotFoundException ex) {
-        ApiError body = ApiError.of(HttpStatus.NOT_FOUND.value(),
-                HttpStatus.NOT_FOUND.getReasonPhrase(), ex.getMessage());
-        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(body);
+        return error(HttpStatus.NOT_FOUND, ex.getMessage());
     }
 
     @ExceptionHandler(EsefParseException.class)
     public ResponseEntity<ApiError> handleEsef(EsefParseException ex) {
-        HttpStatus status = HttpStatus.UNPROCESSABLE_ENTITY;
-        return ResponseEntity.status(status)
-                .body(ApiError.of(status.value(), status.getReasonPhrase(), ex.getMessage()));
+        return error(HttpStatus.UNPROCESSABLE_ENTITY, ex.getMessage());
+    }
+
+    private ResponseEntity<ApiError> error(HttpStatus status, String message) {
+        ApiError body = new ApiError()
+                .timestamp(java.time.OffsetDateTime.now().toString())
+                .status(status.value())
+                .error(status.getReasonPhrase())
+                .message(message);
+        return ResponseEntity.status(status).body(body);
     }
 }

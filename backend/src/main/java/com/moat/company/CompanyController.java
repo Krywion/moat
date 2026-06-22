@@ -1,10 +1,10 @@
 package com.moat.company;
 
-import com.moat.company.dto.CompanyDetailResponse;
-import com.moat.company.dto.CompanySummaryResponse;
-import com.moat.company.dto.CreateCompanyRequest;
-import com.moat.company.dto.FinancialForm;
-import com.moat.company.dto.FinancialReportResponse;
+import com.moat.api.model.CompanyDetailResponse;
+import com.moat.api.model.CompanySummaryResponse;
+import com.moat.api.model.CreateCompanyRequest;
+import com.moat.api.model.FinancialForm;
+import com.moat.api.model.FinancialReportResponse;
 import com.moat.esef.EsefParseException;
 import com.moat.market.MarketDataService;
 import jakarta.validation.Valid;

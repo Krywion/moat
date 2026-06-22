@@ -1,8 +1,8 @@
 package com.moat.auth;
 
-import com.moat.auth.dto.LoginRequest;
-import com.moat.auth.dto.RegisterRequest;
-import com.moat.auth.dto.UserResponse;
+import com.moat.api.model.LoginRequest;
+import com.moat.api.model.RegisterRequest;
+import com.moat.api.model.UserResponse;
 import com.moat.user.User;
 import com.moat.user.UserRepository;
 import jakarta.validation.Valid;
@@ -29,19 +29,22 @@ public class AuthController {
     private final JwtService jwtService;
     private final AuthCookieFactory cookieFactory;
     private final UserRepository userRepository;
+    private final UserMapper userMapper;
 
     public AuthController(AuthService authService, JwtService jwtService,
-                          AuthCookieFactory cookieFactory, UserRepository userRepository) {
+                          AuthCookieFactory cookieFactory, UserRepository userRepository,
+                          UserMapper userMapper) {
         this.authService = authService;
         this.jwtService = jwtService;
         this.cookieFactory = cookieFactory;
         this.userRepository = userRepository;
+        this.userMapper = userMapper;
     }
 
     @PostMapping("/register")
     @ResponseStatus(HttpStatus.CREATED)
     public UserResponse register(@Valid @RequestBody RegisterRequest request) {
-        return UserResponse.from(authService.register(request));
+        return userMapper.toResponse(authService.register(request));
     }
 
     @PostMapping("/login")
@@ -50,7 +53,7 @@ public class AuthController {
         String token = jwtService.issueToken(user);
         return ResponseEntity.ok()
                 .header(HttpHeaders.SET_COOKIE, cookieFactory.authCookie(token).toString())
-                .body(UserResponse.from(user));
+                .body(userMapper.toResponse(user));
     }
 
     @PostMapping("/logout")
@@ -65,6 +68,6 @@ public class AuthController {
         UUID userId = UUID.fromString(jwt.getSubject());
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new BadCredentialsException("User no longer exists"));
-        return UserResponse.from(user);
+        return userMapper.toResponse(user);
     }
 }

@@ -1,0 +1,235 @@
+openapi: 3.0.3
+info:
+  title: Moat API
+  description: Analizator spółek giełdowych — kontrakt backendu.
+  version: 0.1.0
+servers:
+  - url: /
+security:
+  - cookieAuth: []
+paths:
+  /auth/register:
+    post:
+      tags: [auth]
+      summary: Rejestracja konta
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/RegisterRequest' }
+      responses:
+        '201': { description: Utworzono, content: { application/json: { schema: { $ref: '#/components/schemas/UserResponse' } } } }
+        '400': { $ref: '#/components/responses/Error' }
+        '409': { $ref: '#/components/responses/Error' }
+  /auth/login:
+    post:
+      tags: [auth]
+      summary: Logowanie (ustawia HttpOnly cookie auth_token)
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/LoginRequest' }
+      responses:
+        '200':
+          description: Zalogowano
+          headers:
+            Set-Cookie:
+              description: JWT w ciasteczku auth_token (HttpOnly)
+              schema: { type: string }
+          content: { application/json: { schema: { $ref: '#/components/schemas/UserResponse' } } }
+        '400': { $ref: '#/components/responses/Error' }
+        '401': { $ref: '#/components/responses/Error' }
+  /auth/logout:
+    post:
+      tags: [auth]
+      summary: Wylogowanie (kasuje cookie)
+      responses:
+        '204': { description: Wylogowano }
+  /auth/me:
+    get:
+      tags: [auth]
+      summary: Bieżący użytkownik
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/UserResponse' } } } }
+        '401': { $ref: '#/components/responses/Error' }
+  /companies:
+    get:
+      tags: [companies]
+      summary: Lista spółek użytkownika
+      responses:
+        '200':
+          description: OK
+          content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/CompanySummaryResponse' } } } }
+        '401': { $ref: '#/components/responses/Error' }
+    post:
+      tags: [companies]
+      summary: Dodanie spółki z formularzem finansowym (uruchamia pipeline)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CreateCompanyRequest' }
+      responses:
+        '201': { description: Utworzono, content: { application/json: { schema: { $ref: '#/components/schemas/CompanyDetailResponse' } } } }
+        '400': { $ref: '#/components/responses/Error' }
+        '401': { $ref: '#/components/responses/Error' }
+  /companies/{id}:
+    get:
+      tags: [companies]
+      summary: Szczegóły i analiza spółki
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/CompanyDetailResponse' } } } }
+        '401': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+  /companies/{id}/financials:
+    put:
+      tags: [companies]
+      summary: Wprowadzenie/edycja danych finansowych za rok
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/FinancialForm' }
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/FinancialReportResponse' } } } }
+        '400': { $ref: '#/components/responses/Error' }
+        '401': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+  /companies/esef:
+    post:
+      tags: [companies]
+      summary: Dodanie spółki z paczki ESEF (.xbri)
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file: { type: string, format: binary }
+                ticker: { type: string }
+      responses:
+        '201': { description: Utworzono, content: { application/json: { schema: { $ref: '#/components/schemas/CompanyDetailResponse' } } } }
+        '401': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+  /companies/{id}/refresh-market:
+    post:
+      tags: [companies]
+      summary: Odświeżenie danych rynkowych najnowszego raportu
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/CompanyDetailResponse' } } } }
+        '401': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+components:
+  securitySchemes:
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: auth_token
+  responses:
+    Error:
+      description: Błąd
+      content: { application/json: { schema: { $ref: '#/components/schemas/ApiError' } } }
+  schemas:
+    RegisterRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email: { type: string, format: email }
+        password: { type: string, minLength: 8 }
+    LoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email: { type: string, format: email }
+        password: { type: string }
+    UserResponse:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        email: { type: string }
+        role: { type: string }
+    CreateCompanyRequest:
+      type: object
+      required: [name, financials]
+      properties:
+        name: { type: string, minLength: 1 }
+        ticker: { type: string }
+        financials: { $ref: '#/components/schemas/FinancialForm' }
+    FinancialForm:
+      type: object
+      required: [fiscalYear, currency]
+      properties:
+        fiscalYear: { type: integer, minimum: 1900, maximum: 2100 }
+        currency: { type: string, minLength: 3, maxLength: 3 }
+        revenue: { type: number }
+        ebit: { type: number }
+        depreciation: { type: number }
+        netProfit: { type: number }
+        totalDebt: { type: number }
+        netDebt: { type: number }
+        equity: { type: number }
+        operatingCashFlow: { type: number }
+    CompanySummaryResponse:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string }
+        ticker: { type: string }
+        latestFiscalYear: { type: integer }
+        netMargin: { type: number }
+    FinancialReportResponse:
+      type: object
+      properties:
+        fiscalYear: { type: integer }
+        currency: { type: string }
+        revenue: { type: number }
+        ebit: { type: number }
+        depreciation: { type: number }
+        netProfit: { type: number }
+        totalDebt: { type: number }
+        netDebt: { type: number }
+        equity: { type: number }
+        operatingCashFlow: { type: number }
+        ebitda: { type: number }
+        operatingMargin: { type: number }
+        ebitdaMargin: { type: number }
+        netMargin: { type: number }
+        roe: { type: number }
+        debtToEquity: { type: number }
+        revenueGrowthYoy: { type: number }
+        profitGrowthYoy: { type: number }
+        sharePrice: { type: number }
+        marketCap: { type: number }
+        pe: { type: number }
+        evEbitda: { type: number }
+        pbv: { type: number }
+        dividendYield: { type: number }
+        flags: { type: array, items: { $ref: '#/components/schemas/WarningFlag' } }
+    CompanyDetailResponse:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string }
+        ticker: { type: string }
+        reports: { type: array, items: { $ref: '#/components/schemas/FinancialReportResponse' } }
+    ApiError:
+      type: object
+      properties:
+        timestamp: { type: string }
+        status: { type: integer }
+        error: { type: string }
+        message: { type: string }
+    WarningFlag:
+      type: string
+      enum: [POSITIVE_PROFIT_NEGATIVE_CASHFLOW, MARGIN_DECLINING_YOY, DEBT_GROWING_FASTER_THAN_PROFIT]

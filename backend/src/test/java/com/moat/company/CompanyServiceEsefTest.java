@@ -1,6 +1,6 @@
 package com.moat.company;
 
-import com.moat.company.dto.CompanyDetailResponse;
+import com.moat.api.model.CompanyDetailResponse;
 import com.moat.esef.EsefParser;
 import com.moat.esef.ParsedEsef;
 import com.moat.pipeline.FinancialData;
@@ -27,10 +27,9 @@ class CompanyServiceEsefTest {
     private final UserRepository userRepository = mock(UserRepository.class);
     private final PipelineExecutor pipelineExecutor = mock(PipelineExecutor.class);
     private final EsefParser esefParser = mock(EsefParser.class);
-    private final WarningFlagEvaluator flagEvaluator = new WarningFlagEvaluator();
     private final CompanyService service = new CompanyService(
             companyRepository, reportRepository, userRepository, pipelineExecutor,
-            flagEvaluator, esefParser);
+            esefParser, new CompanyMapper(new WarningFlagEvaluator()));
 
     @Test
     void createCompanyFromEsef_usesParsedNameAndRunsPipeline() {
@@ -48,6 +47,6 @@ class CompanyServiceEsefTest {
 
         CompanyDetailResponse result = service.createCompanyFromEsef(ownerId, new byte[]{1, 2}, "RBW");
 
-        assertThat(result.name()).isEqualTo("Rainbow Tours S.A.");
+        assertThat(result.getName()).isEqualTo("Rainbow Tours S.A.");
     }
 }
