@@ -25,3 +25,12 @@ management:
     health:
       probes:
         enabled: true
+
+app:
+  jwt:
+    secret: ${APP_JWT_SECRET:dev-only-secret-change-me-please-0123456789-abcdef}
+    expiry: PT24H
+  cookie:
+    name: auth_token
+    secure: ${APP_COOKIE_SECURE:false}
+    same-site: Strict
