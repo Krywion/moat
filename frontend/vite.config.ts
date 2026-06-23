@@ -15,4 +15,13 @@ export default defineConfig({
       '@': fileURLToPath(new URL('./src', import.meta.url)),
     },
   },
+  server: {
+    proxy: {
+      '/auth/login': 'http://localhost:8080',
+      '/auth/register': 'http://localhost:8080',
+      '/auth/logout': 'http://localhost:8080',
+      '/auth/me': 'http://localhost:8080',
+      '/companies': 'http://localhost:8080',
+    },
+  },
 })

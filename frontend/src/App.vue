@@ -1,11 +1,20 @@
 <script setup lang="ts"></script>
 
 <template>
-  <h1>You did it!</h1>
-  <p>
-    Visit <a href="https://vuejs.org/" target="_blank" rel="noopener">vuejs.org</a> to read the
-    documentation
-  </p>
+  <div class="app-dark app-root">
+    <RouterView />
+  </div>
 </template>
 
-<style scoped></style>
+<style>
+html,
+body,
+#app {
+  margin: 0;
+  min-height: 100%;
+}
+
+.app-root {
+  min-height: 100vh;
+}
+</style>
