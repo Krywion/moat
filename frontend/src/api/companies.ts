@@ -31,3 +31,13 @@ export function createCompanyFromEsef(
     body: formData,
   })
 }
+
+export function getCompany(id: string): Promise<CompanyDetailResponse> {
+  return apiFetch<CompanyDetailResponse>(`/companies/${id}`)
+}
+
+export function refreshMarket(id: string): Promise<CompanyDetailResponse> {
+  return apiFetch<CompanyDetailResponse>(`/companies/${id}/refresh-market`, {
+    method: 'POST',
+  })
+}
