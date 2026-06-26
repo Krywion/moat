@@ -24,6 +24,8 @@ services:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB}
       SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
       SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
+      # DEBUG dla pipeline'u executora (kroki: agregacja/kalkulacja/wzbogacenie/zapis)
+      LOGGING_LEVEL_COM_MOAT_PIPELINE: ${PIPELINE_LOG_LEVEL:-DEBUG}
     ports:
       - "${API_PORT:-8080}:8080"
     healthcheck:
@@ -32,6 +34,20 @@ services:
       timeout: 5s
       retries: 10
       start_period: 40s
+
+  frontend:
+    build: ./frontend
+    depends_on:
+      api:
+        condition: service_healthy
+    ports:
+      - "${FRONTEND_PORT:-3000}:80"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:80/ > /dev/null || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
 
 volumes:
   pgdata:
