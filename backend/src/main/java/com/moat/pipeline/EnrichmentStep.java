@@ -1,6 +1,7 @@
 package com.moat.pipeline;
 
 import com.moat.market.MarketEnricher;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 /**
@@ -9,6 +10,7 @@ import org.springframework.stereotype.Component;
  * Wycena liczona bieżącym kursem dla przetwarzanego raportu (dla starszych lat
  * to przybliżenie).
  */
+@Slf4j
 @Component
 public class EnrichmentStep implements PipelineStep {
 
@@ -22,8 +24,10 @@ public class EnrichmentStep implements PipelineStep {
     public void execute(PipelineContext context) {
         FinancialData d = context.getFinancialData();
         ComputedIndicators i = context.getIndicators();
-        marketEnricher.enrich(context.getCompany().getTicker(),
-                        d.netProfit(), d.equity(), i.ebitda(), d.netDebt())
-                .ifPresent(context::setMarketData);
+        String ticker = context.getCompany().getTicker();
+        var market = marketEnricher.enrich(ticker, d.netProfit(), d.equity(), i.ebitda(), d.netDebt());
+        market.ifPresent(context::setMarketData);
+        log.debug("Enrichment: company={} ticker={} marketData={}",
+                context.getCompany().getId(), ticker, market.isPresent() ? "applied" : "absent");
     }
 }

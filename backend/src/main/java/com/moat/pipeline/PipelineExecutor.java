@@ -1,8 +1,10 @@
 package com.moat.pipeline;
 
 import com.moat.report.FinancialReport;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
+@Slf4j
 @Component
 public class PipelineExecutor {
 
@@ -20,10 +22,34 @@ public class PipelineExecutor {
     }
 
     public FinancialReport run(PipelineContext context) {
-        aggregation.execute(context);
-        calculation.execute(context);
-        enrichment.execute(context);
-        persistence.execute(context);
-        return context.getReport();
+        var companyId = context.getCompany().getId();
+        log.info("Pipeline start: company={}", companyId);
+        long startedAt = System.nanoTime();
+        try {
+            runStep("aggregation", aggregation, context);
+            runStep("calculation", calculation, context);
+            runStep("enrichment", enrichment, context);
+            runStep("persistence", persistence, context);
+
+            FinancialReport report = context.getReport();
+            log.info("Pipeline done: company={} year={} reportId={} elapsedMs={}",
+                    companyId, report.getFiscalYear(), report.getId(), elapsedMs(startedAt));
+            return report;
+        } catch (RuntimeException e) {
+            log.error("Pipeline failed: company={} elapsedMs={} reason={}",
+                    companyId, elapsedMs(startedAt), e.toString());
+            throw e;
+        }
+    }
+
+    private void runStep(String name, PipelineStep step, PipelineContext context) {
+        long startedAt = System.nanoTime();
+        step.execute(context);
+        log.debug("Step done: name={} company={} elapsedMs={}",
+                name, context.getCompany().getId(), elapsedMs(startedAt));
+    }
+
+    private static long elapsedMs(long startedAtNanos) {
+        return (System.nanoTime() - startedAtNanos) / 1_000_000;
     }
 }

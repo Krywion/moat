@@ -1,8 +1,10 @@
 package com.moat.pipeline;
 
 import com.moat.report.FinancialReportRepository;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
+@Slf4j
 @Component
 public class CalculationStep implements PipelineStep {
 
@@ -28,7 +30,12 @@ public class CalculationStep implements PipelineStep {
         ComputedIndicators priorIndicators = prior == null ? null : calculator.calculate(prior, null);
         ComputedIndicators indicators = calculator.calculate(current, prior);
 
+        var flags = flagEvaluator.evaluate(current, indicators, prior, priorIndicators);
         context.setIndicators(indicators);
-        context.setFlags(flagEvaluator.evaluate(current, indicators, prior, priorIndicators));
+        context.setFlags(flags);
+
+        log.debug("Calculation: company={} year={} priorYear={} flags={}",
+                context.getCompany().getId(), current.fiscalYear(),
+                prior == null ? "absent" : current.fiscalYear() - 1, flags.size());
     }
 }

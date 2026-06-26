@@ -4,10 +4,12 @@ import com.moat.market.MarketData;
 import com.moat.market.MarketDataService;
 import com.moat.report.FinancialReport;
 import com.moat.report.FinancialReportRepository;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 import java.time.OffsetDateTime;
 
+@Slf4j
 @Component
 public class PersistenceStep implements PipelineStep {
 
@@ -22,9 +24,11 @@ public class PersistenceStep implements PipelineStep {
         FinancialData d = context.getFinancialData();
         ComputedIndicators i = context.getIndicators();
 
+        boolean[] created = {false};
         FinancialReport report = reportRepository
                 .findByCompanyIdAndFiscalYear(context.getCompany().getId(), d.fiscalYear())
                 .orElseGet(() -> {
+                    created[0] = true;
                     FinancialReport r = new FinancialReport();
                     r.setCompany(context.getCompany());
                     r.setFiscalYear(d.fiscalYear());
@@ -56,6 +60,10 @@ public class PersistenceStep implements PipelineStep {
             MarketDataService.applyTo(report, market);
         }
 
-        context.setReport(reportRepository.save(report));
+        FinancialReport saved = reportRepository.save(report);
+        context.setReport(saved);
+        log.debug("Persistence: company={} year={} reportId={} operation={}",
+                context.getCompany().getId(), d.fiscalYear(), saved.getId(),
+                created[0] ? "insert" : "update");
     }
 }
