@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useRouter } from 'vue-router'
 import DataTable from 'primevue/datatable'
 import Column from 'primevue/column'
 import Tag from 'primevue/tag'
@@ -9,12 +10,19 @@ import type { CompanySummaryResponse } from '@/types/api'
 defineProps<{
   companies: CompanySummaryResponse[]
 }>()
+
+const router = useRouter()
+
+function handleRowClick(event: { data: CompanySummaryResponse }): void {
+  void router.push({ name: 'company-detail', params: { id: event.data.id } })
+}
 </script>
 
 <template>
   <DataTable
     :value="companies"
     class="company-list"
+    @row-click="handleRowClick"
     :pt="{
       root: { class: 'company-list__table' },
       header: { class: 'company-list__header' },
@@ -62,16 +70,27 @@ defineProps<{
 
 .company-list :deep(.p-datatable-tbody > tr) {
   background: rgba(15, 23, 42, 0.72);
+  cursor: pointer;
+  transition: background-color 0.15s ease;
 }
 
 .company-list :deep(.p-datatable-tbody > tr > td) {
   background: rgba(15, 23, 42, 0.72);
   color: #e2e8f0;
   border-color: rgba(255, 255, 255, 0.06);
+  transition: background-color 0.15s ease;
 }
 
 .company-list :deep(.p-datatable-tbody > tr:nth-child(even) > td) {
   background: rgba(255, 255, 255, 0.04);
+}
+
+.company-list :deep(.p-datatable-tbody > tr:hover),
+.company-list :deep(.p-datatable-tbody > tr:hover > td),
+.company-list :deep(.p-datatable-tbody > tr.p-row-hover),
+.company-list :deep(.p-datatable-tbody > tr.p-row-hover > td) {
+  background: rgba(30, 41, 59, 0.98) !important;
+  color: #f1f5f9;
 }
 
 .company-list__name-cell {
