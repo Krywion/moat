@@ -3,6 +3,8 @@ import type {
   CompanyDetailResponse,
   CompanySummaryResponse,
   CreateCompanyRequest,
+  FinancialForm,
+  FinancialReportResponse,
 } from '@/types/api'
 
 export function listCompanies(): Promise<CompanySummaryResponse[]> {
@@ -39,5 +41,15 @@ export function getCompany(id: string): Promise<CompanyDetailResponse> {
 export function refreshMarket(id: string): Promise<CompanyDetailResponse> {
   return apiFetch<CompanyDetailResponse>(`/companies/${id}/refresh-market`, {
     method: 'POST',
+  })
+}
+
+export function updateFinancials(
+  id: string,
+  form: FinancialForm,
+): Promise<FinancialReportResponse> {
+  return apiFetch<FinancialReportResponse>(`/companies/${id}/financials`, {
+    method: 'PUT',
+    body: JSON.stringify(form),
   })
 }

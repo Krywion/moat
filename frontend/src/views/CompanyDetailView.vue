@@ -11,6 +11,7 @@ import Toast from 'primevue/toast'
 
 import CompanyHealthSection from '@/components/CompanyHealthSection.vue'
 import CompanyValuationSection from '@/components/CompanyValuationSection.vue'
+import EditFinancialsDialog from '@/components/EditFinancialsDialog.vue'
 import WarningFlags from '@/components/WarningFlags.vue'
 import * as companiesApi from '@/api/companies'
 import { useAuthStore } from '@/stores/auth'
@@ -28,6 +29,8 @@ const status = ref<LoadStatus>('loading')
 const errorMessage = ref<string | null>(null)
 const selectedYear = ref<number | null>(null)
 const refreshingMarket = ref(false)
+const editDialogVisible = ref(false)
+const editDialogMode = ref<'edit' | 'add'>('edit')
 
 const companyId = computed(() => route.params.id as string)
 
@@ -93,6 +96,37 @@ async function handleRefreshMarket(): Promise<void> {
     })
   } finally {
     refreshingMarket.value = false
+  }
+}
+
+function openEditDialog(mode: 'edit' | 'add'): void {
+  editDialogMode.value = mode
+  editDialogVisible.value = true
+}
+
+async function handleFinancialsSaved(): Promise<void> {
+  const previousYear = selectedYear.value
+
+  try {
+    company.value = await companiesApi.getCompany(companyId.value)
+    const years = sortedReports.value.map((report) => report.fiscalYear)
+    selectedYear.value =
+      previousYear != null && years.includes(previousYear)
+        ? previousYear
+        : (sortedReports.value[0]?.fiscalYear ?? null)
+
+    toast.add({
+      severity: 'success',
+      summary: 'Dane finansowe zapisane',
+      life: 3000,
+    })
+  } catch (error) {
+    toast.add({
+      severity: 'error',
+      summary: 'Nie udało się odświeżyć danych spółki',
+      detail: getErrorMessage(error),
+      life: 5000,
+    })
   }
 }
 
@@ -202,7 +236,32 @@ watch(companyId, () => {
               <span v-else class="company-detail__year-static">{{ selectedReport.fiscalYear }}</span>
             </div>
           </div>
+          <div class="company-detail__actions">
+            <Button
+              label="Edytuj dane"
+              icon="pi pi-pencil"
+              severity="secondary"
+              outlined
+              @click="openEditDialog('edit')"
+            />
+            <Button
+              label="Dodaj rok"
+              icon="pi pi-plus"
+              severity="secondary"
+              outlined
+              @click="openEditDialog('add')"
+            />
+          </div>
         </div>
+
+        <EditFinancialsDialog
+          v-model:visible="editDialogVisible"
+          :company-id="companyId"
+          :mode="editDialogMode"
+          :report="selectedReport"
+          :latest-report="sortedReports[0] ?? null"
+          @saved="handleFinancialsSaved"
+        />
 
         <WarningFlags :flags="selectedReport.flags" />
 
@@ -287,7 +346,19 @@ watch(companyId, () => {
 }
 
 .company-detail__hero {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
   margin-bottom: 1.5rem;
+}
+
+.company-detail__actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
 }
 
 .company-detail__title {
