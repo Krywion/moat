@@ -1,6 +1,10 @@
 package com.moat.support;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.moat.company.CompanyRepository;
+import com.moat.report.FinancialReportRepository;
+import com.moat.user.UserRepository;
+import org.junit.jupiter.api.BeforeEach;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -30,4 +34,24 @@ public abstract class AbstractIntegrationTest {
 
     @Autowired
     protected ObjectMapper objectMapper;
+
+    @Autowired
+    private FinancialReportRepository financialReportRepository;
+    @Autowired
+    private CompanyRepository companyRepository;
+    @Autowired
+    private UserRepository userRepository;
+
+    /**
+     * Współdzielony singleton-kontener nie jest resetowany między klasami, a @SpringBootTest nie
+     * robi rollbacku — dane wyciekają między testami. Sprzątamy wszystko w kolejności bezpiecznej
+     * dla kluczy obcych (financial_reports → companies → users). Metoda @BeforeEach z nadklasy
+     * wykonuje się przed @BeforeEach podklas, więc te zaczynają od pustej bazy.
+     */
+    @BeforeEach
+    void cleanDatabase() {
+        financialReportRepository.deleteAll();
+        companyRepository.deleteAll();
+        userRepository.deleteAll();
+    }
 }
