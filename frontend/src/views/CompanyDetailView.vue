@@ -378,7 +378,7 @@ watch(companyId, () => {
 }
 
 .company-detail__email {
-  color: #94a3b8;
+  color: #cbd5e1;
   font-size: 0.9rem;
 }
 
@@ -437,7 +437,7 @@ watch(companyId, () => {
 }
 
 .company-detail__year-label {
-  color: #94a3b8;
+  color: #cbd5e1;
   font-size: 0.9rem;
 }
 
