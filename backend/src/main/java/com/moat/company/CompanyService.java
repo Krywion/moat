@@ -81,6 +81,13 @@ public class CompanyService {
     }
 
     @Transactional
+    public void deleteCompany(UUID ownerId, UUID companyId) {
+        Company company = requireOwnedCompany(ownerId, companyId);
+        reportRepository.deleteByCompanyId(companyId);
+        companyRepository.delete(company);
+    }
+
+    @Transactional
     public CompanyDetailResponse createCompanyFromEsef(UUID ownerId, byte[] xbri, String ticker) {
         com.moat.esef.ParsedEsef parsed = esefParser.parse(xbri);
         Company company = new Company();

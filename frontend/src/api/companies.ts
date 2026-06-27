@@ -53,3 +53,7 @@ export function updateFinancials(
     body: JSON.stringify(form),
   })
 }
+
+export function deleteCompany(id: string): Promise<void> {
+  return apiFetch<void>(`/companies/${id}`, { method: 'DELETE' })
+}
