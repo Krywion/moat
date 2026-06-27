@@ -344,7 +344,7 @@ async function handleSubmit(): Promise<void> {
 .edit-financials-dialog__hint {
   margin: 0;
   line-height: 1.5;
-  color: #94a3b8;
+  color: #64748b;
   font-size: 0.9rem;
 }
 
@@ -363,7 +363,7 @@ async function handleSubmit(): Promise<void> {
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  color: #94a3b8;
+  color: #64748b;
 }
 
 @media (max-width: 640px) {

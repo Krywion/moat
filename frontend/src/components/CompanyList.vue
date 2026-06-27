@@ -60,7 +60,7 @@ function handleRowClick(event: { data: CompanySummaryResponse }): void {
 
 .company-list :deep(.p-datatable-thead > tr > th) {
   background: rgba(15, 23, 42, 0.95);
-  color: #94a3b8;
+  color: #cbd5e1;
   border-color: rgba(255, 255, 255, 0.08);
   font-weight: 600;
   font-size: 0.85rem;

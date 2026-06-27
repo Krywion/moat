@@ -2,7 +2,9 @@
 import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useToast } from 'primevue/usetoast'
+import { useConfirm } from 'primevue/useconfirm'
 import Button from 'primevue/button'
+import ConfirmDialog from 'primevue/confirmdialog'
 import Message from 'primevue/message'
 import ProgressSpinner from 'primevue/progressspinner'
 import Select from 'primevue/select'
@@ -21,6 +23,7 @@ const route = useRoute()
 const router = useRouter()
 const authStore = useAuthStore()
 const toast = useToast()
+const confirm = useConfirm()
 
 type LoadStatus = 'loading' | 'ready' | 'not-found' | 'error'
 
@@ -29,6 +32,7 @@ const status = ref<LoadStatus>('loading')
 const errorMessage = ref<string | null>(null)
 const selectedYear = ref<number | null>(null)
 const refreshingMarket = ref(false)
+const isDeleting = ref(false)
 const editDialogVisible = ref(false)
 const editDialogMode = ref<'edit' | 'add'>('edit')
 
@@ -104,6 +108,54 @@ function openEditDialog(mode: 'edit' | 'add'): void {
   editDialogVisible.value = true
 }
 
+function confirmDelete(): void {
+  if (!company.value) {
+    return
+  }
+
+  confirm.require({
+    message: `Czy na pewno chcesz usunąć spółkę „${company.value.name}"? Tej operacji nie można cofnąć.`,
+    header: 'Usuń spółkę',
+    icon: 'pi pi-exclamation-triangle',
+    rejectLabel: 'Anuluj',
+    acceptLabel: 'Usuń',
+    rejectProps: {
+      label: 'Anuluj',
+      severity: 'secondary',
+      outlined: true,
+    },
+    acceptProps: {
+      label: 'Usuń',
+      severity: 'danger',
+    },
+    accept: () => {
+      void handleDelete()
+    },
+  })
+}
+
+async function handleDelete(): Promise<void> {
+  isDeleting.value = true
+  try {
+    await companiesApi.deleteCompany(companyId.value)
+    toast.add({
+      severity: 'success',
+      summary: 'Spółka usunięta',
+      life: 3000,
+    })
+    await router.push({ name: 'dashboard' })
+  } catch (error) {
+    toast.add({
+      severity: 'error',
+      summary: 'Nie udało się usunąć spółki',
+      detail: getErrorMessage(error),
+      life: 5000,
+    })
+  } finally {
+    isDeleting.value = false
+  }
+}
+
 async function handleFinancialsSaved(): Promise<void> {
   const previousYear = selectedYear.value
 
@@ -163,6 +215,7 @@ watch(companyId, () => {
 <template>
   <div class="company-detail">
     <Toast />
+    <ConfirmDialog />
 
     <header class="company-detail__header">
       <div class="company-detail__header-left">
@@ -251,6 +304,14 @@ watch(companyId, () => {
               outlined
               @click="openEditDialog('add')"
             />
+            <Button
+              label="Usuń spółkę"
+              icon="pi pi-trash"
+              severity="danger"
+              outlined
+              :loading="isDeleting"
+              @click="confirmDelete"
+            />
           </div>
         </div>
 
@@ -317,7 +378,7 @@ watch(companyId, () => {
 }
 
 .company-detail__email {
-  color: #94a3b8;
+  color: #cbd5e1;
   font-size: 0.9rem;
 }
 
@@ -376,7 +437,7 @@ watch(companyId, () => {
 }
 
 .company-detail__year-label {
-  color: #94a3b8;
+  color: #cbd5e1;
   font-size: 0.9rem;
 }
 

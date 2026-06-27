@@ -86,6 +86,15 @@ paths:
         '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/CompanyDetailResponse' } } } }
         '401': { $ref: '#/components/responses/Error' }
         '404': { $ref: '#/components/responses/Error' }
+    delete:
+      tags: [companies]
+      summary: Usunięcie spółki wraz z raportami finansowymi
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        '204': { description: Usunięto }
+        '401': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
   /companies/{id}/financials:
     put:
       tags: [companies]
