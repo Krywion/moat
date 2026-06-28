@@ -310,7 +310,7 @@ async function handleRegister(): Promise<void> {
 
 .auth-brand__tagline {
   margin: 0.35rem 0 0;
-  color: #94a3b8;
+  color: #cbd5e1;
   font-size: 0.95rem;
 }
 
@@ -348,7 +348,7 @@ async function handleRegister(): Promise<void> {
 .auth-hint {
   margin: -0.75rem 0 0;
   font-size: 0.8rem;
-  color: #64748b;
+  color: #cbd5e1;
 }
 
 .auth-submit {

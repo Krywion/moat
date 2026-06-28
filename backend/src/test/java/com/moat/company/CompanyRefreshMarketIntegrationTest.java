@@ -1,6 +1,7 @@
 package com.moat.company;
 
 import com.moat.support.AbstractIntegrationTest;
+import com.moat.report.FinancialReportRepository;
 import com.moat.user.UserRepository;
 import jakarta.servlet.http.Cookie;
 import org.junit.jupiter.api.BeforeEach;
@@ -15,10 +16,12 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class CompanyRefreshMarketIntegrationTest extends AbstractIntegrationTest {
 
     @Autowired CompanyRepository companyRepository;
+    @Autowired FinancialReportRepository reportRepository;
     @Autowired UserRepository userRepository;
 
     @BeforeEach
     void clean() {
+        reportRepository.deleteAll();
         companyRepository.deleteAll();
         userRepository.deleteAll();
     }

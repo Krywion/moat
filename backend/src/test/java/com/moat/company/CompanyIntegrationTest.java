@@ -1,6 +1,7 @@
 package com.moat.company;
 
 import com.moat.support.AbstractIntegrationTest;
+import com.moat.report.FinancialReportRepository;
 import com.moat.user.UserRepository;
 import jakarta.servlet.http.Cookie;
 import org.junit.jupiter.api.BeforeEach;
@@ -9,6 +10,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.web.servlet.MvcResult;
 
 import static org.springframework.http.MediaType.APPLICATION_JSON;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
@@ -18,10 +20,12 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class CompanyIntegrationTest extends AbstractIntegrationTest {
 
     @Autowired CompanyRepository companyRepository;
+    @Autowired FinancialReportRepository reportRepository;
     @Autowired UserRepository userRepository;
 
     @BeforeEach
     void clean() {
+        reportRepository.deleteAll();
         companyRepository.deleteAll();
         userRepository.deleteAll();
     }
@@ -96,5 +100,41 @@ class CompanyIntegrationTest extends AbstractIntegrationTest {
 
         mockMvc.perform(get("/companies/" + id).cookie(bob))
                 .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void deleteCompany_removesCompanyAndReports() throws Exception {
+        Cookie cookie = login("alice@example.com");
+        MvcResult created = mockMvc.perform(post("/companies").cookie(cookie)
+                        .contentType(APPLICATION_JSON).content(companyBody(2024, 1000, 200, 100)))
+                .andExpect(status().isCreated()).andReturn();
+        String id = objectMapper.readTree(created.getResponse().getContentAsString()).get("id").asText();
+
+        mockMvc.perform(delete("/companies/" + id).cookie(cookie))
+                .andExpect(status().isNoContent());
+
+        mockMvc.perform(get("/companies/" + id).cookie(cookie))
+                .andExpect(status().isNotFound());
+
+        mockMvc.perform(get("/companies").cookie(cookie))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(0));
+    }
+
+    @Test
+    void deleteCompany_ofAnotherUser_returns404() throws Exception {
+        Cookie alice = login("alice@example.com");
+        Cookie bob = login("bob@example.com");
+        MvcResult created = mockMvc.perform(post("/companies").cookie(alice)
+                        .contentType(APPLICATION_JSON).content(companyBody(2024, 1000, 200, 100)))
+                .andExpect(status().isCreated()).andReturn();
+        String id = objectMapper.readTree(created.getResponse().getContentAsString()).get("id").asText();
+
+        mockMvc.perform(delete("/companies/" + id).cookie(bob))
+                .andExpect(status().isNotFound());
+
+        mockMvc.perform(get("/companies/" + id).cookie(alice))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.name").value("Acme"));
     }
 }

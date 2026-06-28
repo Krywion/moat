@@ -13,4 +13,6 @@ public interface FinancialReportRepository extends JpaRepository<FinancialReport
     List<FinancialReport> findByCompanyIdOrderByFiscalYearAsc(UUID companyId);
 
     Optional<FinancialReport> findFirstByCompanyIdOrderByFiscalYearDesc(UUID companyId);
+
+    void deleteByCompanyId(UUID companyId);
 }

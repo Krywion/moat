@@ -20,6 +20,10 @@ W Postmanie: **Import** → wskaż oba pliki. W prawym górnym rogu wybierz śro
    do zmiennej `companyId`.
 5. **Companies → Get by id / Update financials / List** — działają na `{{companyId}}`.
    `Update financials` z kolejnym rokiem pokaże dynamikę r/r.
+6. **Companies → Create from ESEF (.xbri upload)** — alternatywa dla formularza:
+   w zakładce Body → form-data wskaż plik `.xbri` w wierszu `file` (np.
+   `data/raw/zal04_...xbri`). Parser czyta iXBRL po tagach IFRS, tworzy spółkę
+   (nazwa z raportu) i raport. Zła paczka → `422`. Też zapisuje `companyId`.
 
 ## Uwagi
 - Cookie `auth_token` ma `SameSite=Strict`; w Postmanie (klient, nie przeglądarka)

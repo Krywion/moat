@@ -61,6 +61,12 @@ function hasMarketData(report: FinancialReportResponse): boolean {
 .valuation-section {
   border: 1px solid rgba(255, 255, 255, 0.08);
   background: rgba(15, 23, 42, 0.72);
+  color: #e2e8f0;
+}
+
+.valuation-section :deep(.p-card-title) {
+  color: #f8fafc !important;
+  font-weight: 600;
 }
 
 .valuation-section__title-row {
@@ -70,6 +76,7 @@ function hasMarketData(report: FinancialReportResponse): boolean {
   gap: 1rem;
   flex-wrap: wrap;
   width: 100%;
+  color: #f8fafc;
 }
 
 .valuation-section__grid {

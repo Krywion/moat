@@ -140,7 +140,7 @@ function handleCompanyCreated(): void {
 }
 
 .dashboard__email {
-  color: #94a3b8;
+  color: #cbd5e1;
   font-size: 0.9rem;
 }
 
@@ -167,12 +167,18 @@ function handleCompanyCreated(): void {
 .dashboard__empty {
   border: 1px solid rgba(255, 255, 255, 0.08);
   background: rgba(15, 23, 42, 0.72);
+  color: #e2e8f0;
+}
+
+.dashboard__empty :deep(.p-card-title) {
+  color: #f8fafc !important;
+  font-weight: 600;
 }
 
 .dashboard__copy {
   margin: 0 0 1.25rem;
   line-height: 1.6;
-  color: #cbd5e1;
+  color: #e2e8f0;
 }
 
 .dashboard__toolbar {
