@@ -44,6 +44,18 @@ export function refreshMarket(id: string): Promise<CompanyDetailResponse> {
   })
 }
 
+export function uploadFinancialsEsef(
+  id: string,
+  file: File,
+): Promise<FinancialReportResponse> {
+  const formData = new FormData()
+  formData.append('file', file)
+  return apiFetch<FinancialReportResponse>(`/companies/${id}/financials/esef`, {
+    method: 'POST',
+    body: formData,
+  })
+}
+
 export function updateFinancials(
   id: string,
   form: FinancialForm,

@@ -62,6 +62,23 @@ public class CompanyController {
         return companyService.updateFinancials(userId(jwt), id, form);
     }
 
+    @PostMapping("/{id}/financials/esef")
+    public FinancialReportResponse addFinancialsFromEsef(
+            @AuthenticationPrincipal Jwt jwt,
+            @PathVariable UUID id,
+            @RequestParam("file") MultipartFile file) {
+        if (file == null || file.isEmpty()) {
+            throw new EsefParseException("Empty ESEF file");
+        }
+        byte[] bytes;
+        try {
+            bytes = file.getBytes();
+        } catch (IOException e) {
+            throw new EsefParseException("Cannot read uploaded file", e);
+        }
+        return companyService.addFinancialsFromEsef(userId(jwt), id, bytes);
+    }
+
     @PostMapping("/esef")
     @ResponseStatus(HttpStatus.CREATED)
     public CompanyDetailResponse createFromEsef(

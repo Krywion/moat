@@ -6,6 +6,7 @@ import com.moat.api.model.CreateCompanyRequest;
 import com.moat.api.model.FinancialForm;
 import com.moat.api.model.FinancialReportResponse;
 import com.moat.esef.EsefParser;
+import com.moat.esef.ParsedEsef;
 import com.moat.pipeline.PipelineContext;
 import com.moat.pipeline.PipelineExecutor;
 import com.moat.report.FinancialReport;
@@ -81,8 +82,21 @@ public class CompanyService {
     }
 
     @Transactional
+    public FinancialReportResponse addFinancialsFromEsef(UUID ownerId, UUID companyId, byte[] xbri) {
+        Company company = requireOwnedCompany(ownerId, companyId);
+        ParsedEsef parsed = esefParser.parse(xbri);
+        if (!parsed.companyName().equals(company.getName())) {
+            throw new CompanyMismatchException(parsed.companyName(), company.getName());
+        }
+        FinancialReport report = pipelineExecutor.run(new PipelineContext(company, parsed.data()));
+        FinancialReport prior = reportRepository
+                .findByCompanyIdAndFiscalYear(companyId, report.getFiscalYear() - 1).orElse(null);
+        return companyMapper.toReport(report, prior);
+    }
+
+    @Transactional
     public CompanyDetailResponse createCompanyFromEsef(UUID ownerId, byte[] xbri, String ticker) {
-        com.moat.esef.ParsedEsef parsed = esefParser.parse(xbri);
+        ParsedEsef parsed = esefParser.parse(xbri);
         Company company = new Company();
         company.setOwner(userRepository.getReferenceById(ownerId));
         company.setName(parsed.companyName());

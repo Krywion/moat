@@ -20,6 +20,11 @@ public class CompanyExceptionHandler {
         return error(HttpStatus.UNPROCESSABLE_ENTITY, ex.getMessage());
     }
 
+    @ExceptionHandler(CompanyMismatchException.class)
+    public ResponseEntity<ApiError> handleMismatch(CompanyMismatchException ex) {
+        return error(HttpStatus.UNPROCESSABLE_ENTITY, ex.getMessage());
+    }
+
     private ResponseEntity<ApiError> error(HttpStatus status, String message) {
         ApiError body = new ApiError()
                 .timestamp(java.time.OffsetDateTime.now().toString())
