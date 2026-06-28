@@ -22,6 +22,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 class CompanyServiceAddEsefTest {
@@ -85,5 +87,29 @@ class CompanyServiceAddEsefTest {
                 .isInstanceOf(CompanyMismatchException.class)
                 .hasMessageContaining("Rainbow Tours S.A.")
                 .hasMessageContaining("Acme Corp");
+    }
+
+    @Test
+    void addFinancialsFromEsef_duplicateYear_throwsDuplicateFinancialReportException() {
+        UUID ownerId = UUID.randomUUID();
+        Company company = ownedCompany(ownerId, "Rainbow Tours S.A.");
+
+        FinancialData data = new FinancialData(2025, "PLN", BigDecimal.valueOf(1000), null, null,
+                BigDecimal.valueOf(100), null, null, BigDecimal.valueOf(500), null);
+        when(esefParser.parse(any())).thenReturn(new ParsedEsef("Rainbow Tours S.A.", data));
+        when(companyRepository.findByIdAndOwnerId(company.getId(), ownerId))
+                .thenReturn(Optional.of(company));
+
+        FinancialReport existing = new FinancialReport();
+        existing.setFiscalYear(2025);
+        when(reportRepository.findByCompanyIdAndFiscalYear(company.getId(), 2025))
+                .thenReturn(Optional.of(existing));
+
+        assertThatThrownBy(() -> service.addFinancialsFromEsef(
+                ownerId, company.getId(), new byte[]{1, 2}))
+                .isInstanceOf(DuplicateFinancialReportException.class)
+                .hasMessageContaining("2025");
+
+        verify(pipelineExecutor, never()).run(any(PipelineContext.class));
     }
 }

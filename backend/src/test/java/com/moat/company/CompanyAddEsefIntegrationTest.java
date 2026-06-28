@@ -59,7 +59,13 @@ class CompanyAddEsefIntegrationTest extends AbstractIntegrationTest {
     @Test
     void addEsefYear_matchingCompany_returns200() throws Exception {
         Cookie cookie = login("alice@example.com");
-        String companyId = createCompanyFromEsef(cookie);
+
+        MvcResult created = mockMvc.perform(post("/companies").cookie(cookie)
+                        .contentType(APPLICATION_JSON)
+                        .content("{\"name\":\"Rainbow Tours Spółka Akcyjna\",\"financials\":{"
+                                + "\"fiscalYear\":2024,\"currency\":\"PLN\",\"revenue\":1000}}"))
+                .andExpect(status().isCreated()).andReturn();
+        String companyId = objectMapper.readTree(created.getResponse().getContentAsString()).get("id").asText();
 
         MockMultipartFile file = new MockMultipartFile(
                 "file", "rainbow-tours.xbri", "application/octet-stream", samplePackage());
@@ -67,8 +73,23 @@ class CompanyAddEsefIntegrationTest extends AbstractIntegrationTest {
         mockMvc.perform(multipart("/companies/" + companyId + "/financials/esef")
                         .file(file).cookie(cookie))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.fiscalYear").exists())
+                .andExpect(jsonPath("$.fiscalYear").value(2025))
                 .andExpect(jsonPath("$.revenue").exists());
+    }
+
+    @Test
+    void addEsefYear_duplicateYear_returns409() throws Exception {
+        Cookie cookie = login("alice@example.com");
+        String companyId = createCompanyFromEsef(cookie);
+
+        MockMultipartFile file = new MockMultipartFile(
+                "file", "rainbow-tours.xbri", "application/octet-stream", samplePackage());
+
+        mockMvc.perform(multipart("/companies/" + companyId + "/financials/esef")
+                        .file(file).cookie(cookie))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.message").value(
+                        org.hamcrest.Matchers.containsString("2025")));
     }
 
     @Test

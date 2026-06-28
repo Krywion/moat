@@ -46,6 +46,7 @@ public class CompanyService {
 
     @Transactional
     public CompanyDetailResponse createCompany(UUID ownerId, CreateCompanyRequest req) {
+        requireUniqueCompany(ownerId, req.getName(), req.getTicker());
         Company company = new Company();
         company.setOwner(userRepository.getReferenceById(ownerId));
         company.setName(req.getName());
@@ -88,6 +89,10 @@ public class CompanyService {
         if (!parsed.companyName().equals(company.getName())) {
             throw new CompanyMismatchException(parsed.companyName(), company.getName());
         }
+        int fiscalYear = parsed.data().fiscalYear();
+        if (reportRepository.findByCompanyIdAndFiscalYear(companyId, fiscalYear).isPresent()) {
+            throw new DuplicateFinancialReportException(fiscalYear);
+        }
         FinancialReport report = pipelineExecutor.run(new PipelineContext(company, parsed.data()));
         FinancialReport prior = reportRepository
                 .findByCompanyIdAndFiscalYear(companyId, report.getFiscalYear() - 1).orElse(null);
@@ -104,6 +109,7 @@ public class CompanyService {
     @Transactional
     public CompanyDetailResponse createCompanyFromEsef(UUID ownerId, byte[] xbri, String ticker) {
         ParsedEsef parsed = esefParser.parse(xbri);
+        requireUniqueCompany(ownerId, parsed.companyName(), ticker);
         Company company = new Company();
         company.setOwner(userRepository.getReferenceById(ownerId));
         company.setName(parsed.companyName());
@@ -117,6 +123,18 @@ public class CompanyService {
     private Company requireOwnedCompany(UUID ownerId, UUID companyId) {
         return companyRepository.findByIdAndOwnerId(companyId, ownerId)
                 .orElseThrow(() -> new CompanyNotFoundException(companyId));
+    }
+
+    private void requireUniqueCompany(UUID ownerId, String name, String ticker) {
+        if (companyRepository.existsByOwnerIdAndName(ownerId, name)) {
+            throw DuplicateCompanyException.forName(name);
+        }
+        if (ticker != null && !ticker.isBlank()) {
+            String normalizedTicker = ticker.trim();
+            if (companyRepository.existsByOwnerIdAndTicker(ownerId, normalizedTicker)) {
+                throw DuplicateCompanyException.forTicker(normalizedTicker);
+            }
+        }
     }
 
     private CompanyDetailResponse toDetail(Company company) {

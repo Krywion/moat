@@ -16,8 +16,11 @@ import java.util.List;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 class CompanyServiceEsefTest {
@@ -38,6 +41,8 @@ class CompanyServiceEsefTest {
                 BigDecimal.valueOf(100), null, null, BigDecimal.valueOf(500), null);
         when(esefParser.parse(any())).thenReturn(new ParsedEsef("Rainbow Tours S.A.", data));
         when(userRepository.getReferenceById(ownerId)).thenReturn(new User());
+        when(companyRepository.existsByOwnerIdAndName(ownerId, "Rainbow Tours S.A.")).thenReturn(false);
+        when(companyRepository.existsByOwnerIdAndTicker(ownerId, "RBW")).thenReturn(false);
         when(companyRepository.save(any(Company.class))).thenAnswer(inv -> {
             Company c = inv.getArgument(0);
             c.setId(UUID.randomUUID());
@@ -48,5 +53,20 @@ class CompanyServiceEsefTest {
         CompanyDetailResponse result = service.createCompanyFromEsef(ownerId, new byte[]{1, 2}, "RBW");
 
         assertThat(result.getName()).isEqualTo("Rainbow Tours S.A.");
+    }
+
+    @Test
+    void createCompanyFromEsef_duplicateName_throwsDuplicateCompanyException() {
+        UUID ownerId = UUID.randomUUID();
+        FinancialData data = new FinancialData(2025, "PLN", BigDecimal.valueOf(1000), null, null,
+                BigDecimal.valueOf(100), null, null, BigDecimal.valueOf(500), null);
+        when(esefParser.parse(any())).thenReturn(new ParsedEsef("Rainbow Tours S.A.", data));
+        when(companyRepository.existsByOwnerIdAndName(ownerId, "Rainbow Tours S.A.")).thenReturn(true);
+
+        assertThatThrownBy(() -> service.createCompanyFromEsef(ownerId, new byte[]{1, 2}, "RBW"))
+                .isInstanceOf(DuplicateCompanyException.class)
+                .hasMessageContaining("Rainbow Tours S.A.");
+
+        verify(companyRepository, never()).save(any(Company.class));
     }
 }
