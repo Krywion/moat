@@ -4,7 +4,21 @@ Webowa aplikacja do analizy fundamentalnej spółek giełdowych. Użytkownik
 wrzuca raport finansowy spółki, system parsuje go, liczy wskaźniki i
 prezentuje gotową analizę wspierającą decyzję inwestycyjną.
 
-**Stack:** Java + Spring Boot · Vue · PostgreSQL · JWT (rola w bazie) · Docker Compose
+**Stack:** Java 21 + Spring Boot 3 · Vue 3 · PostgreSQL 16 · JWT (HttpOnly cookie, rola w bazie) · Docker Compose
+
+---
+
+## Stan implementacji (2026-06)
+
+End-to-end działa ścieżka: rejestracja → logowanie → dodanie spółki
+(formularz lub upload ESEF `.xbri`) → pipeline (wskaźniki, flagi, Yahoo) →
+podgląd analizy w UI z tooltipami. Uruchomienie: `docker compose up` —
+frontend `:3000`, API `:8080`.
+
+Fazy 1–4 ukończone. Faza 5 częściowo (CI, testy, obsługa błędów 4xx) —
+szczegóły w sekcji 7.
+
+Decyzje architektoniczne: [adr/](adr/) (8 wpisów ADR).
 
 ---
 
@@ -40,7 +54,8 @@ analiza fundamentalna.
 ## 3. Ekrany
 
 ### 3.1 Auth (rejestracja / logowanie)
-Formularz konta. Po zalogowaniu JWT (token lub ciasteczko z JWT).
+Formularz konta. Po zalogowaniu JWT w **HttpOnly cookie** `auth_token`
+(zob. [ADR 0005](adr/0005-jwt-auth-strategy.md)).
 
 ### 3.2 Panel — lista spółek
 Lista spółek użytkownika z kluczowym wskaźnikiem skrótowym przy każdej.
@@ -87,31 +102,43 @@ ujemnym cash flow, marża spadająca r/r, dług rosnący szybciej niż zysk.
 
 ## 4. Architektura backendu
 
+Kontrakt API: [backend/openapi.yaml](../backend/openapi.yaml).
+
 ### Endpointy publiczne
 - `POST /auth/register` — rejestracja
-- `POST /auth/login` — logowanie, zwraca JWT
+- `POST /auth/login` — logowanie, ustawia cookie `auth_token`
 
-### Endpointy chronione
+### Endpointy chronione (auth)
+- `POST /auth/logout` — wylogowanie, kasuje cookie
+- `GET /auth/me` — bieżący użytkownik
+
+### Endpointy chronione (spółki)
 - `GET /companies` — lista spółek użytkownika
+- `POST /companies` — dodanie spółki z formularzem (uruchamia pipeline)
+- `POST /companies/esef` — dodanie spółki z uploadu `.xbri`
 - `GET /companies/{id}` — szczegóły i analiza spółki
-- `POST /companies` — dodanie spółki (uruchamia pipeline)
+- `DELETE /companies/{id}` — usunięcie spółki z raportami
 - `PUT /companies/{id}/financials` — ręczne wprowadzenie/edycja danych finansowych
+- `POST /companies/{id}/financials/esef` — dodanie roku z uploadu `.xbri`
+- `POST /companies/{id}/refresh-market` — odświeżenie danych rynkowych
 
 ### Pipeline-executor (rdzeń)
-`POST /companies` uruchamia pipeline jako sekwencję kroków:
 
-1. **Wejście** — dwa warianty, dające ten sam model danych:
-  - **ESEF (główny)** — rozpakowanie paczki `.xbri` (archiwum ZIP) →
-    odnalezienie głównego pliku raportu w `reports/` → parsowanie iXBRL →
-    odczyt wartości po nazwach tagów IFRS (np. `ifrs-full:Revenue`)
-  - **Formularz** — ręczne wprowadzenie danych dla spółek bez raportu ESEF
-2. **Agregacja** — surowe dane do jednego modelu `FinancialData`
-3. **Obliczenia** — wskaźniki i flagi ostrzegawcze
-4. **Wzbogacenie** — uzupełnienie danymi rynkowymi z API zewnętrznego (Yahoo)
-5. **Zapis** — spółka + analiza do bazy
+**Przygotowanie wejścia** (warstwa serwisu, przed pipeline):
 
-Każdy krok to osobny, testowalny komponent. Krok 1 ma dwa warianty
-(ESEF / formularz) — od kroku 2 pipeline jest wspólny.
+- **ESEF** — `POST /companies/esef` lub `POST /companies/{id}/financials/esef`:
+  rozpakowanie `.xbri` → iXBRL → tagi IFRS → model danych
+- **Formularz** — `POST /companies` lub `PUT /companies/{id}/financials`:
+  dane z żądania JSON
+
+**Pipeline** (`PipelineExecutor`) — wspólny dla obu wejść:
+
+1. **Agregacja** — surowe dane do jednego modelu `FinancialData`
+2. **Obliczenia** — wskaźniki i flagi ostrzegawcze
+3. **Wzbogacenie** — dane rynkowe z Yahoo Finance
+4. **Zapis** — raport finansowy do bazy
+
+Szczegóły: [ADR 0003](adr/0003-pipeline-executor.md), [ADR 0007](adr/0007-esef-ixbrl-input.md).
 
 Parsowanie iXBRL jest deterministyczne: dane w raporcie ESEF są otagowane
 wg taksonomii IFRS, więc odczyt nie zależy od layoutu dokumentu i działa
@@ -146,35 +173,36 @@ powstał — umożliwia weryfikację i wychwycenie błędu parsowania.
 ## 7. Roadmapa wykonawcza
 
 ### Faza 1 — Fundament
-- [ ] Repo, README, szkic architektury
-- [ ] Decyzje stacku spisane jako pierwsze wpisy ADR
+- [x] Repo, README, szkic architektury
+- [x] Decyzje stacku spisane jako pierwsze wpisy ADR
 - [ ] Pierwszy commit od obu osób
 
 ### Faza 2 — Szkielet
-- [ ] docker-compose: PostgreSQL + API, health-check
-- [ ] Model danych (User / Company / FinancialReport), pierwsza migracja
-- [ ] ADR: pipeline-executor, Spring Boot, PostgreSQL
+- [x] docker-compose: PostgreSQL + API + frontend, health-check
+- [x] Model danych (User / Company / FinancialReport), pierwsza migracja
+- [x] ADR: pipeline-executor, Spring Boot, PostgreSQL
 
 ### Faza 3 — Rdzeń
-- [ ] Auth: register / login, JWT, rola w bazie
-- [ ] Endpointy listy i szczegółów spółki
-- [ ] Pipeline — szkielet z krokami, na razie wejście formularzowe
-- [ ] Frontend: auth, panel z listą spółek
-- [ ] ADR: Vue, JWT zamiast Keycloaka, komunikacja REST
+- [x] Auth: register / login / logout / me, JWT, rola w bazie
+- [x] Endpointy listy i szczegółów spółki
+- [x] Pipeline — kroki agregacja/kalkulacja/wzbogacenie/zapis, wejście formularzowe
+- [x] Frontend: auth, panel z listą spółek
+- [x] ADR: Vue, JWT zamiast Keycloaka, komunikacja REST
 
 ### Faza 4 — Parser i analiza
-- [ ] Parser ESEF — rozpakowanie `.xbri`, odnalezienie pliku raportu
-- [ ] Parsowanie iXBRL — odczyt wartości po tagach IFRS (krok 1)
-- [ ] Obliczenia wskaźników + flagi (krok 3)
-- [ ] Wzbogacenie danymi rynkowymi (krok 4)
-- [ ] Panel analizy spółki: etap 1, etap 2, tooltipy
-- [ ] ADR: ESEF/iXBRL jako format wejścia (zamiast parsowania PDF)
+- [x] Parser ESEF — rozpakowanie `.xbri`, odnalezienie pliku raportu
+- [x] Parsowanie iXBRL — odczyt wartości po tagach IFRS
+- [x] Obliczenia wskaźników + flagi
+- [x] Wzbogacenie danymi rynkowymi (Yahoo)
+- [x] Panel analizy spółki: etap 1, etap 2, tooltipy
+- [x] ADR: ESEF/iXBRL jako format wejścia (zamiast parsowania PDF)
 
 ### Faza 5 — Szlif
-- [ ] Obsługa błędów, walidacja wejścia
-- [ ] Seed data, min. 10 testów (rdzeń: obliczenia)
-- [ ] CI: lint + testy
-- [ ] README, finalizacja ADR (6+ wpisów)
+- [x] Obsługa błędów, walidacja wejścia (`CompanyExceptionHandler`, kody 4xx)
+- [ ] Seed data
+- [x] Min. 10 testów (rdzeń: obliczenia, pipeline, ESEF, auth)
+- [x] CI: build + testy (backend `verify`, frontend build)
+- [x] README, finalizacja ADR (8 wpisów)
 - [ ] Test docker-compose na czystej maszynie
 
 ---
