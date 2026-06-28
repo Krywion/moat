@@ -76,6 +76,7 @@ paths:
         '201': { description: Utworzono, content: { application/json: { schema: { $ref: '#/components/schemas/CompanyDetailResponse' } } } }
         '400': { $ref: '#/components/responses/Error' }
         '401': { $ref: '#/components/responses/Error' }
+        '409': { $ref: '#/components/responses/Error' }
   /companies/{id}:
     get:
       tags: [companies]
@@ -130,6 +131,7 @@ paths:
         '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/FinancialReportResponse' } } } }
         '401': { $ref: '#/components/responses/Error' }
         '404': { $ref: '#/components/responses/Error' }
+        '409': { $ref: '#/components/responses/Error' }
         '422': { $ref: '#/components/responses/Error' }
   /companies/esef:
     post:
@@ -148,6 +150,7 @@ paths:
       responses:
         '201': { description: Utworzono, content: { application/json: { schema: { $ref: '#/components/schemas/CompanyDetailResponse' } } } }
         '401': { $ref: '#/components/responses/Error' }
+        '409': { $ref: '#/components/responses/Error' }
         '422': { $ref: '#/components/responses/Error' }
   /companies/{id}/refresh-market:
     post:
