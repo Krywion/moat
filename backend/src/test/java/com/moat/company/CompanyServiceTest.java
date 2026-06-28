@@ -55,6 +55,8 @@ class CompanyServiceTest {
     void createCompany_savesCompanyAndRunsPipeline() {
         UUID ownerId = UUID.randomUUID();
         when(userRepository.getReferenceById(ownerId)).thenReturn(new User());
+        when(companyRepository.existsByOwnerIdAndName(ownerId, "Acme")).thenReturn(false);
+        when(companyRepository.existsByOwnerIdAndTicker(ownerId, "ACM")).thenReturn(false);
         when(companyRepository.save(any(Company.class))).thenAnswer(inv -> {
             Company c = inv.getArgument(0);
             c.setId(UUID.randomUUID());

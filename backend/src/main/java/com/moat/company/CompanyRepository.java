@@ -11,4 +11,8 @@ public interface CompanyRepository extends JpaRepository<Company, UUID> {
     List<Company> findByOwnerId(UUID ownerId);
 
     Optional<Company> findByIdAndOwnerId(UUID id, UUID ownerId);
+
+    boolean existsByOwnerIdAndName(UUID ownerId, String name);
+
+    boolean existsByOwnerIdAndTicker(UUID ownerId, String ticker);
 }

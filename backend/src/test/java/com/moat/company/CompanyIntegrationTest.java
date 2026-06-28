@@ -61,6 +61,21 @@ class CompanyIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test
+    void createCompany_duplicateName_returns409() throws Exception {
+        Cookie cookie = login("alice@example.com");
+
+        mockMvc.perform(post("/companies").cookie(cookie).contentType(APPLICATION_JSON)
+                        .content(companyBody(2024, 1000, 200, 100)))
+                .andExpect(status().isCreated());
+
+        mockMvc.perform(post("/companies").cookie(cookie).contentType(APPLICATION_JSON)
+                        .content(companyBody(2023, 800, 150, 80)))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.message").value(
+                        org.hamcrest.Matchers.containsString("Acme")));
+    }
+
+    @Test
     void list_isScopedToOwner() throws Exception {
         Cookie alice = login("alice@example.com");
         Cookie bob = login("bob@example.com");

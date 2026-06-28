@@ -60,6 +60,20 @@ class CompanyEsefIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test
+    void uploadEsef_duplicateCompany_returns409() throws Exception {
+        Cookie cookie = login("alice@example.com");
+        MockMultipartFile file = new MockMultipartFile(
+                "file", "rainbow-tours.xbri", "application/octet-stream", samplePackage());
+
+        mockMvc.perform(multipart("/companies/esef").file(file).cookie(cookie))
+                .andExpect(status().isCreated());
+
+        mockMvc.perform(multipart("/companies/esef").file(file).cookie(cookie))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.message").exists());
+    }
+
+    @Test
     void uploadInvalidFile_returns422() throws Exception {
         Cookie cookie = login("alice@example.com");
         MockMultipartFile file = new MockMultipartFile(
