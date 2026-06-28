@@ -2,7 +2,7 @@
   "info": {
     "_postman_id": "b7e3a1c2-0001-4a10-9f00-moat00000001",
     "name": "Moat API",
-    "description": "Kolekcja do ręcznego klikania API analizatora spółek (Faza 3: auth + spółki + pipeline formularzowy).\n\nUżycie:\n1. Uruchom backend (np. `docker compose up` lub `mvn spring-boot:run` w `backend/`).\n2. Wyślij `Auth / Register` (raz na dany email; ponowne → 409).\n3. Wyślij `Auth / Login` — JWT przychodzi jako HttpOnly cookie `auth_token`; Postman zapamiętuje je w cookie jar i odsyła automatycznie w kolejnych żądaniach.\n4. `Companies / Create` zapisuje `id` nowej spółki do zmiennej kolekcji `companyId` — endpointy `Get by id` i `Update financials` używają jej automatycznie.\n\nZmienne kolekcji: `baseUrl`, `email`, `password`, `companyId`.",
+    "description": "Kolekcja do ręcznego testowania REST API analizatora spółek (auth + spółki + formularz + ESEF).\n\nUżycie:\n1. Uruchom backend (np. `docker compose up` lub `mvn spring-boot:run` w `backend/`).\n2. Wyślij `Auth / Register` (raz na dany email; ponowne → 409).\n3. Wyślij `Auth / Login` — JWT przychodzi jako HttpOnly cookie `auth_token`; Postman zapamiętuje je w cookie jar i odsyła automatycznie w kolejnych żądaniach.\n4. `Companies / Create` lub `Create from ESEF` zapisuje `id` nowej spółki do zmiennej kolekcji `companyId`.\n\nZmienne kolekcji: `baseUrl`, `email`, `password`, `companyId`.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
@@ -212,6 +212,54 @@
               "path": [ "companies", "esef" ]
             },
             "description": "Wgrywa paczkę ESEF (.xbri) jako multipart form-data. Parser rozpakowuje ZIP, czyta iXBRL po tagach IFRS i tworzy spółkę (nazwa z raportu) + raport z policzonymi wskaźnikami. Zła/niepasująca paczka → 422.\n\nW zakładce Body → form-data wskaż plik .xbri w wierszu `file` (typ File). Zapisuje `id` do zmiennej `companyId`."
+          },
+          "response": []
+        },
+        {
+          "name": "Add ESEF year to existing company",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "file", "type": "file", "src": "", "description": "Paczka ESEF .xbri dla istniejącej spółki (nazwa musi się zgadzać)" }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/companies/{{companyId}}/financials/esef",
+              "host": [ "{{baseUrl}}" ],
+              "path": [ "companies", "{{companyId}}", "financials", "esef" ]
+            },
+            "description": "Dodaje rok obrotowy z paczki ESEF do spółki `{{companyId}}`. Nazwa w raporcie musi zgadzać się ze spółką. Duplikat roku → 409. Błąd parsowania → 422."
+          },
+          "response": []
+        },
+        {
+          "name": "Refresh market",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/companies/{{companyId}}/refresh-market",
+              "host": [ "{{baseUrl}}" ],
+              "path": [ "companies", "{{companyId}}", "refresh-market" ]
+            },
+            "description": "Ponownie pobiera dane rynkowe (Yahoo) i przelicza wskaźniki wyceny dla najnowszego raportu. Cudza/nieistniejąca spółka → 404."
+          },
+          "response": []
+        },
+        {
+          "name": "Delete",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/companies/{{companyId}}",
+              "host": [ "{{baseUrl}}" ],
+              "path": [ "companies", "{{companyId}}" ]
+            },
+            "description": "Usuwa spółkę wraz z raportami finansowymi. 204. Cudza/nieistniejąca → 404."
           },
           "response": []
         }

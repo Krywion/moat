@@ -19,6 +19,26 @@ Używamy **PostgreSQL 16**.
 - Klucze główne: `UUID`.
 - Daty: `TIMESTAMP WITH TIME ZONE`.
 - Baza działa jako kontener w Docker Compose z health-checkiem `pg_isready`.
+- Unikalność raportu: `(company_id, fiscal_year)` — jeden raport na rok obrotowy.
+- Spółki są przypisane do właściciela (`owner_id` → `users`); owner-scoping
+  wymuszany w warstwie serwisu (zob. [ADR 0006](0006-rest-and-owner-scoping.md)).
+
+## Alternatywy rozważane
+
+- **H2 / SQLite** — odrzucone; brak precyzji NUMERIC na poziomie produkcyjnym
+  i słabsze wsparcie dla constraintów w skali projektu.
+- **MySQL** — odrzucone; PostgreSQL lepiej wspiera UUID i NUMERIC w JPA.
+
+## Implementacja
+
+- Encje JPA:
+  - `backend/src/main/java/com/moat/user/User.java`
+  - `backend/src/main/java/com/moat/company/Company.java`
+  - `backend/src/main/java/com/moat/report/FinancialReport.java`
+- Migracje Liquibase: `backend/src/main/resources/db/changelog/`
+  (master: `db.changelog-master.yaml`)
+- Kontener Docker: serwis `postgres` w `docker-compose.yml`
+- Testy integracyjne: Testcontainers PostgreSQL (`AbstractIntegrationTest`)
 
 ## Konsekwencje
 
